@@ -1,0 +1,205 @@
+---
+title: "MATH1324 Assignment 2"
+subtitle: "Supermarket Price Wars"
+output: html_notebook
+---
+
+## Group/Individual Details
+
+* Akhil Puri 1 (s774583)
+* Vanessa Fraser 2 (s3770781)
+
+## Executive Statement
+
+In your own words, provide a brief summary of the investigation. Explain the aim of the investigation, the procedure, sample, variables, main findings and conclusions. Write this section last after you have performed hypothesis testing. (Word count Max: 300 words) 
+
+
+##Data Collection 
+
+For the purpsoe of this assignment we needed to use a sampling method that was randomly representative of the population . Hence the sampling menthod that we resorted to was stratified sampling. What this means is that we divided the population (i.e the complete product portfolio offered by the two supermarkets Coles & Woolworths) into various product group categories like fruit , vegetable , meat , pantry and dairy . The choice of those four categories was governed by out decision to keep our investigation brand free which leaves some room for price variation between the two supermarkets within a product type unlike branded bottled and packaged food products which are more or less the same price in both supermarkets unless they are on a special discount for stock clearance. For certain products like beef mince and chicken mince the supermarket grade was chosen again allowing for variation unlike selecting a particular brand.  Then we used simple random sampling within each category of products. The method of selecting the samples was independant i.e the sample product picked at woolworths did not in any way  affect the sample picked at Coles, other than the fact that they had to be same the same product (comparing apples to apples ) since we had decided to keep out statistical investigation brand free to allow for natural price variation. For example there are various kinds of apples at coles just as there are various varieties of potatoes at Woolworths so picking within a product type was not influenced / dependant and the sample was completely picked at random. All prices are in Australian dollars per KG . 
+
+
+## Load Packages and Data
+
+```{r}
+
+# Loading the packages required to reproduce the report and importing the data as a csv. 
+
+library(car)
+library(dplyr)
+library(readxl)
+
+PriceWar <- read.csv(file= "C:/Users/axelp/Documents/RMIT/Semester 1/Introduction to Statistics/Assignment 2/Price comparison list WoolworthsvsColes.csv", header=TRUE, sep=",")
+
+```
+
+## Summary Statistics
+
+Use R to summarise the data from the investigation. Include an appropriate plot to help visualise the data. Describe the trend. 
+
+Our price list sheet for the 2 supermsrkets contains 40 products from 5 categories (meat , dairy, fruit, vegetables and pantry). 
+
+```{r}
+
+#Lets see the summary statistics for the price variable of the range of products for the two competing supermarkets 
+
+PriceWar$Woolworths%>% summary()
+
+PriceWar$Coles %>% summary()
+
+#We can see that the mean price of the sample products for Woolworths is 11.4 which is a little higher than the mean price of the sample products of Coles
+
+#Using boxplot() we will be able to get a better idea visually of the summary statistics , mainly around the quartiles of distribtion of the price of the sample products for the two supermarkets. 
+
+# So we plot 2 box plots of the price distribution of the sample products for the 2 supermarkets  side by side for ease of comparison 
+
+lmts <- range(PriceWar$Coles,PriceWar$Woolworths)
+
+par(mfrow = c(2,1))
+
+boxplot(PriceWar$Woolworths,ylim=lmts,horizontal=TRUE,ylab = "Woolworths Prices",col = "skyblue")
+
+boxplot(PriceWar$Coles,ylim=lmts,horizontal=TRUE,ylab = "Coles Prices",col = "skyblue")
+
+#From the boxplots we can deduce the following about the price distributions :- 
+# 1. Both the distributions are right skewed
+# 2. There are some outliers both for the Woolworths prices boxplot as well as the Coles prices boxplot
+# 3. Using the formula IQR = Q3- Q1 & Q3 + 1.5 * IQR < Right / Upper outliers , it is possible to determine the outliers for both boxplots
+
+woolworths_outliers <- 13.5 + 1.5*(13.5 - 4.8)
+woolworths_outliers
+ 
+coles_outliers<- 14.85 + 1.5*(14.85-4.875)
+coles_outliers
+
+#The above formula is only to demonstrate the existence of outliers in both sample price distribution for the current  summary statistics section but we will not be removing the outliers since this a statistical investigation to detemine which store is more expensive i.e the extreme values will be utilised to compare the variance of the two groupes in the next section called hypothesis testing. 
+
+#Although not required since the sample size > 30 , before conducting the hypothesis test using the independant 2 sample t-test , we can check if the quantiles of two sample distributions being compared are similar including that of their underlying distribution and any departures from a normal distribution (y=x line) . Q-Q plot can visaully provide information regarding a graphical view of whether characteristics such as skewness and scale are similar or vary in the quantiles of two comparable distributions. 
+
+PriceWar$Woolworths %>% qqPlot(dist="norm")
+
+PriceWar$Coles %>% qqPlot(dist="norm")
+
+#We can clearly see that the two distributions almost follow the normal distribution curve / line except for the slight upper heavy tail (minor kurtosis) but we do not need to be too worried about the non -fit of the observed data with the theoretical normal distribution line as the sample size for both the price distributions is > 30.  
+```
+
+
+## Hypothesis Test
+
+We use the independant 2 sample t test to determine who wins the price war. We are using the independant 2 sample t-test , as we have already established in the data collection section , becuase we have gone ahead with sampling non-branded fresh fruits, vegetables, meat and dairy with some pantry products. This gave us the freedom to pick any grade of a certain product without getting too concerned about branding sizing specification and scale. All prices were available per KG.  
+
+We need to determine the type of two sample t test that we need to use to carry out our statistical investigation and eventual inference of the same. So we use the Levene's test to check whether we can assume equal variance in the two sample price distributions for Coles and Woolworths to carry out the 2 sample t test. If the Levene's test is statistically insignificant i.e p-value > 0.05 then we can assume equal variance . If not then we will use the Welsh 2 sample t test. 
+
+First let us explain the statistical hypothesis of Levene's test . 
+
+H0:σ1^2=σ2^2
+ 
+HA:σ1^2≠σ2^2
+
+where σ1^2 and σ2^2 refer to the population variance of Woolworths and Coles respectively. The Levene’s test reports a p-value that is compared to the standard 0.05 significance level. We can use the leveneTest() function in R to compare the variances of the price of independent sample products of Woolworths and Coles 
+
+The Two-sample t-test - Assuming Equal Variance OR Two-sample t-test - Assuming Unequal Variance ( The Welsh test) reports us a test stastistic t which can be compared to the two tailed t critical value , a p value which gives us a probability of observing a sample difference between the means , or one more extreme and a 95% confidence interval of the difference between the means to reject or accept H0.
+
+The two-sample t-test has the following statistical hypotheses:
+
+H0:μ1−μ2=0
+HA:μ1−μ2≠0
+
+where μ1 and μ2 refer to the population means of Woolwaorts and Coles respectively. The null hypothesis (H0) is simply that the difference between the two independent population means is 0. The alternative hypothesis (H1) is simply that the difference between the two independent population means is not 0 , i.e there is a difference between the population means hence one supermarket is cheaper or more expensive that the other ! 
+The difference between the means of the sample for Woolworths and Coles is estimated by 11.4 - 11.796 = -0.396
+
+
+```{r}
+
+#Levene's test
+
+#The null hypothesis(H0) is the difference between the population mean of prices of the two supermarket is 0. Now the difference between Coles and Woolworths estimated by the sample is 11.4 - 11.796 = -0.396 
+
+
+y <- c(PriceWar$Woolworths, PriceWar$Coles)
+group <- as.factor(c(rep(1, length(PriceWar$Woolworths)), rep(2,length(PriceWar$Coles))))
+leveneTest(y, group)
+
+#The p value for Levene's Test of equal variance for the price of independant sample products belonging to Woolworths and Coles is p= 0.8145 . We find that p>0.05 significance level so we are safe to assume equal variances.
+
+#If the Levene’s test was statistically significant, i.e. p<.05, this would imply that we need to reject H0. In other words, it’s not safe to assume equal variance.
+
+#We can now perform the 2 sample t test assuming equal variances and a two sided hypothesis test . 
+
+t.test(
+  PriceWar$Woolworths,
+  PriceWar$Coles,
+  var.equal = TRUE,
+  alternative = "two.sided"
+  )
+
+# The t statistic is t = -0.17768 .Lets compare this with two tailed t critical value t* with df
+#df = n1 + n2- 2 
+#df = 40 +40 -2 = 78
+
+#Assuming α=0.05 and a two-tailed test, we find t∗ using the R function:
+
+qt(p = 0.025, df = 40 + 40 - 2)
+
+#As the test statistic t from the two-sample t-test assuming equal variance was t=−0.17768, which was not more extreme than -1.990847, we fail to reject H0. According to the critical value method, there was no statistically significant difference between Woolworth and Coles prices means.
+
+#In other words we fail to find statistically significant evidence to support the alternative hypothesis that Coles and Woolworths have different means i.e there is no suppport for the hypothesis that one supermarket is cheaper or more expensive that the other 
+
+# We will discuss more about the interpretation of the p value and the 95% CI in the next section "Interpretation"
+```
+
+## Interpretation
+
+Interpreting the p value of the 2 sample t-test:
+
+First lets discuss the p value statistical hypotheses:
+
+H0:μ1−μ2=0
+HA:μ1−μ2≠0
+
+where μ1 and μ2 refer to the population means of Woolworths & Coles respectively. The null hypothesis is simply that the difference between the two independent population means is 0. 
+
+The difference between Woolworths and Coles estimated by the sample was  11.4 - 11.796 = -0.396.
+
+Now to the interpretation of the p value results :
+
+The p-value of the two-sample t-test will report the probability of observing a sample difference between the means of  -0.396., or one more extreme, assuming the difference was 0 in the population (i.e. H0 is true).
+
+The two-tailed p-value was reported to be p = 0.3656 and according to the p-value method, as p =0.8594 which is > α = 0.05, we failed to reject H0 implying that there wasnt any statistically significant difference between the means.
+
+
+Interpreting the Confidence interval of the 2 sample t-test:
+
+The theory behind the confidence interval says that 
+
+"100(1−α)% CI is an interval estimate for a population parameter, based on a given sample statistic, where if samples of a certain size n were repeatedly drawn from the population and a CI for each sample’s statistic was calculated, 100(1−α)% of these intervals would capture the population parameter, whereas the other 100(α)% would not. Note the 95% CI is the most common."
+
+95% CI does not capture H0, reject H0;
+95% captures H0, fail to reject H0;
+
+As the population standard deviation is rarely known, we should always default to using the t-distribution and t-critical values to calculate interval estimates for sample means or in this case the 95% interval estimate for the difference of the sample mean (assuming Normality or the CLT applies). Only use a z-critical value if the population standard deviation is given (which is rare!).
+
+`95% CI Lower Bound`  = round(Mean - tcrit * SE,2)
+
+
+`95% CI Upper Bound` = round(Mean + tcrit * SE,2))
+
+where SE = round(SD/sqrt(n),3)
+
+The confidence intervals is the 95% CI [ -4.814659  4.025659]. We assumed H0 or our null hypothesis is that the diffeence between the population means is 0 . Therefore this interval does capture H0, we failed to reject it, or  fail to find statistically significant evidence to support the that Coles and Woolworths sample price distribution has different means.
+
+
+
+## Discussion 
+
+Discuss the findings of your investigation. What did you conclude? What were the strengths and limitations of your investigation? What improvements could be made or what would you do differently next time?
+
+Finally after having conducted the hypothesis testing using the independant 2 sample t test we can safely infer from the t statsitic , p value and the 95% CI that there is that the results failed to find statistically significant evidence to support the alternative hypothesis that the population means are different , or to put it in other words even though both supermarkets aggressively discount product prices accross categories to capture more market share in order to increase revenue , the results of our statistical investigation did not reveal any evidence to suggest one is cheaper or more expensive than the other !
+
+
+Strengths of the investigation
+
+1. We relied on independant sampling which enabled us to conduct the independant 2 sample t test rather than dependant sampling which would have required us to do the paired samples t test . This is due to the fact that we stuck to fresh fruits , vegetables , dairy and meat which was supermarket / local grade rather than the well known prominent brands . As a result we could see differences in price of the prodcuts unlike the branded packaged and bottled products of a particular specification ( weight and size ) which are more or less the same price in both supermarkets unless those products are on a special to clear inventory.
+
+2. We did not rely on online prices . Both group members visted  both the supermarkets and captured live prices rather than prices online for Woolworths and coles using http://www.grocerycop.com.au . This helped us avoid the situation where in online prices suffer from a slight lag and do not reflect the prices at the store . As a result out data collection was 100% accurate. 
+
