@@ -1,0 +1,466 @@
+```{r}
+
+library(plotly)
+
+Australia <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Australia migration.csv")
+
+Australia
+
+names(Australia)[1]<-"Year"
+names(Australia)[3]<-"Migration_nos"
+names(Australia)[4]<-"Total_migration_nos"
+names(Australia)[5]<-"Percentage_of_total_migration"
+
+Australia
+
+
+p1 <- plot_ly(Australia, x = ~Migration_nos, y = ~Percentage_of_total_migration, color = ~Country,
+               size = ~Migration_nos, frame = ~Year, alpha = 1) %>% 
+  
+  add_trace(type = "scatter", mode = "markers") %>% 
+  
+  layout( title = "Overseas migration per country vs Percentage_of_total Migration (AUSTRALIA)",
+    yaxis = list(zeroline = FALSE, title = "Percentage of total migration"),
+         xaxis = list(zeroline = FALSE, title = "Migration Nos"))
+
+p1
+
+NSW <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/NSW migration .csv")
+
+NSW
+
+names(NSW)[1]<-"Year"
+names(NSW)[3]<-"Migration_nos"
+names(NSW)[4]<-"Total_migration_nos"
+names(NSW)[5]<-"Percentage_of_total_migration"
+
+NSW
+
+
+p2 <- plot_ly(NSW, x = ~Migration_nos, y = ~Percentage_of_total_migration, color = ~Country,
+              size = ~Migration_nos, frame = ~Year, alpha = 1) %>% 
+  
+  add_trace(type = "scatter", mode = "markers") %>% 
+  
+  layout( title = "Overseas migration per country vs Percentage_of_total Migration (NEW SOUTH WALES)",
+          yaxis = list(zeroline = FALSE, title = "Percentage of total migration"),
+          xaxis = list(zeroline = FALSE, title = "Migration Numbers"))
+
+p2
+
+Victoria <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Victoria migration .csv")
+
+Victoria
+
+names(Victoria)[1]<-"Year"
+names(Victoria)[3]<-"Migration_nos"
+names(Victoria)[4]<-"Total_migration_nos"
+names(Victoria)[5]<-"Percentage_of_total_migration"
+
+Victoria
+
+p3 <- plot_ly(Victoria, x = ~Migration_nos, y = ~Percentage_of_total_migration, color = ~Country,
+              size = ~Migration_nos, frame = ~Year, alpha = 1) %>% 
+  
+  add_trace(type = "scatter", mode = "markers") %>% 
+  
+  layout( title = "Overseas migration per country vs Percentage of Total Migration (Victoria)",
+          yaxis = list(zeroline = FALSE, title = "Percentage of Total Migration for the year "),
+          xaxis = list(zeroline = FALSE, title = "Migration Numbers for the year "))
+
+p3
+
+
+WesternAus <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Western Australia migration .csv")
+
+WesternAus
+
+names(WesternAus)[1]<-"Year"
+names(WesternAus)[3]<-"Migration_nos"
+names(WesternAus)[4]<-"Total_migration_nos"
+names(WesternAus)[5]<-"Percentage_of_total_migration"
+
+WesternAus
+
+p4 <- plot_ly(WesternAus, x = ~Migration_nos, y = ~Percentage_of_total_migration, color = ~Country,
+              size = ~Migration_nos , frame = ~Year, alpha = 1) %>% 
+  
+  add_trace(type = "scatter", mode = "markers") %>% 
+  
+  layout( title = "Overseas migration per country vs Percentage of Total Migration (Western Australia)",
+          yaxis = list(zeroline = FALSE, title = "Percentage of Total Migration for the year "),
+          xaxis = list(zeroline = FALSE, title = "Migration Numbers for the year "))
+
+p4
+
+SouthAus <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/South Australia migration .csv")
+
+SouthAus
+
+names(SouthAus)[1]<-"Year"
+names(SouthAus)[3]<-"Migration_nos"
+names(SouthAus)[4]<-"Total_migration_nos"
+names(SouthAus)[5]<-"Percentage_of_total_migration"
+
+SouthAus
+
+p5 <- plot_ly(SouthAus, x = ~Migration_nos, y = ~Percentage_of_total_migration, color = ~Country,
+              size = ~Migration_nos , frame = ~Year, alpha = 1) %>% 
+  
+  add_trace(type = "scatter", mode = "markers") %>% 
+  
+  layout( title = "Overseas migration per country vs Percentage of Total Migration (South Australia)",
+          yaxis = list(zeroline = FALSE, title = "Percentage of Total Migration for the year "),
+          xaxis = list(zeroline = FALSE, title = "Migration Numbers for the year "))
+
+p5
+
+
+Tassy <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Tasmania migration .csv")
+
+Tassy
+
+names(Tassy)[1]<-"Year"
+names(Tassy)[3]<-"Migration_nos"
+names(Tassy)[4]<-"Total_migration_nos"
+names(Tassy)[5]<-"Percentage_of_total_migration"
+
+Tassy
+
+p6 <- plot_ly(Tassy, x = ~Migration_nos, y = ~Percentage_of_total_migration, color = ~Country,
+              size = ~Migration_nos , frame = ~Year, alpha = 1) %>% 
+  
+  add_trace(type = "scatter", mode = "markers") %>% 
+  
+  layout( title = "Overseas migration per country vs Percentage of Total Migration (Tasmania)",
+          yaxis = list(zeroline = FALSE, title = "Percentage of Total Migration for the year "),
+          xaxis = list(zeroline = FALSE, title = "Migration Numbers for the year "))
+
+p6
+
+
+NT <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Northern Territory migration .csv")
+
+NT
+
+names(NT)[1]<-"Year"
+names(NT)[3]<-"Migration_nos"
+names(NT)[4]<-"Total_migration_nos"
+names(NT)[5]<-"Percentage_of_total_migration"
+
+NT
+
+p7 <- plot_ly(NT, x = ~Migration_nos, y = ~Percentage_of_total_migration, color = ~Country,
+              size = ~Migration_nos , frame = ~Year, alpha = 1) %>% 
+  
+  add_trace(type = "scatter", mode = "markers") %>% 
+  
+  layout( title = "Overseas migration per country vs Percentage of Total Migration (Northern Territory)",
+          yaxis = list(zeroline = FALSE, title = "Percentage of Total Migration for the year "),
+          xaxis = list(zeroline = FALSE, title = "Migration Numbers for the year "))
+
+p7
+
+
+ACT <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/ACT migration .csv")
+
+ACT
+
+names(ACT)[1]<-"Year"
+names(ACT)[3]<-"Migration_nos"
+names(ACT)[4]<-"Total_migration_nos"
+names(ACT)[5]<-"Percentage_of_total_migration"
+
+ACT
+
+p8 <- plot_ly(ACT, x = ~Migration_nos, y = ~Percentage_of_total_migration, color = ~Country,
+              size = ~Migration_nos , frame = ~Year, alpha = 1) %>% 
+  
+  add_trace(type = "scatter", mode = "markers") %>% 
+  
+  layout( title = "Overseas migration per country vs Percentage of Total Migration (Australian Capital Territory)",
+          yaxis = list(zeroline = FALSE, title = "Percentage of Total Migration for the year "),
+          xaxis = list(zeroline = FALSE, title = "Migration Numbers for the year "))
+
+p8
+
+Australia_filter <- Australia %>% filter(Country %in% c("China","India","UK, CIs & IOM(e)","New Zealand"))
+ 
+qplot(x = Year ,y = Migration_nos, data = Australia_filter,
+      geom = "point", facets = Country ~.) +
+  stat_smooth()
+
+NSW_filter <- NSW %>% filter(Country %in% c("China","India","UK, CIs & IOM(e)","New Zealand"))
+ 
+qplot(x = Year ,y = Migration_nos, data = NSW_filter,
+      geom = "point", facets = Country ~.) +
+  stat_smooth()
+
+Victoria_filter <- Victoria %>% filter(Country %in% c("China","India","UK, CIs & IOM(e)","New Zealand"))
+ 
+qplot(x = Year ,y = Migration_nos, data = Victoria_filter,
+      geom = "point", facets = Country ~.) +
+  stat_smooth()
+
+SouthAus_filter <- SouthAus %>% filter(Country %in% c("China","India","UK, CIs & IOM(e)","New Zealand"))
+
+SouthAus_filter
+ 
+qplot(x = Year ,y = Migration_nos, data = SouthAus_filter,
+      geom = "point", facets = Country ~.) +
+  stat_smooth()
+
+WA_filter <- WesternAus %>% filter(Country %in% c("China","India","UK, CIs & IOM(e)","New Zealand"))
+
+WA_filter
+ 
+qplot(x = Year ,y = Migration_nos, data = WA_filter,
+      geom = "point", facets = Country ~.) +
+  stat_smooth()
+
+Tassy_filter <- Tassy %>% filter(Country %in% c("China","India","UK, CIs & IOM(e)","New Zealand"))
+
+qplot(x = Year ,y = Migration_nos, data = Tassy_filter,
+      geom = "point", facets = Country ~.) +
+  stat_smooth()
+
+
+NT_filter <- NT %>% filter(Country %in% c("China","India","UK, CIs & IOM(e)","New Zealand"))
+
+qplot(x = Year ,y = Migration_nos, data = NT_filter,
+      geom = "point", facets = Country ~.) +
+  stat_smooth()
+
+library(ggplot2)
+
+
+# calculate mean salary for each rank
+
+library(dplyr)
+
+library(magrittr)
+
+plotdata <- Australia %>%
+  group_by(Country) %>% summarize(mean_migration = mean(Migration_nos))
+
+# plot mean salaries
+
+ggplot(plotdata, aes(x = Country , y = mean_migration)) +
+  geom_bar(stat = "identity", fill="cornflowerblue") + 
+geom_text(aes(label = sprintf("%0.2f", round(mean_migration, digits = 0))), 
+            vjust = -0.25) +
+  scale_y_continuous(breaks = seq(0, 40000, 5000))+
+  labs(title = "Mean Migration figures of top 10 countries to Australia ", 
+       subtitle = "For the years 2004-2017",
+       x="",
+       y="")
+
+
+tempvisa <- read.csv(file= "C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Temporary Visas 2004 Australia.csv", header=TRUE, sep=",")
+
+tempvisa
+
+names(tempvisa)[1]<-"Temporary_visas"
+
+tempvisa
+
+p9 <- ggplot(tempvisa ,aes(x = Temporary_visas, y=Count))
+ 
+
+p9 + geom_bar(stat="identity",fill = "#CC79A7" ) +  theme_minimal() +
+  theme(axis.text.x=element_text(angle=45,hjust=1,face = c('bold', 'bold', 'bold', 'bold', 'bold'))) +
+  labs(title = "Temporary visa subclasses numbers - Overall Australia (2004)",
+       y = "Count",
+       x = "Temporary visas") +
+  geom_text(aes(label=round(Count)), vjust = -0.5,size = 6)
+
+
+tempvisa1 <- read.csv(file= "C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Temporary visa count by sublass 2009.csv", header=TRUE, sep=",")
+
+tempvisa1
+
+names(tempvisa1)[1]<-"Temporary_visas"
+
+tempvisa1
+
+p10 <- ggplot(tempvisa1 ,aes(x = Temporary_visas, y=Count))
+ 
+
+p10 + geom_bar(stat="identity",fill = "#D55E00" ) +  theme_minimal() +
+  theme(axis.text.x=element_text(angle=45,hjust=1,face = c('bold', 'bold', 'bold', 'bold', 'bold'))) +
+  labs(title = "Temporary visa subclasses numbers - Overall Australia (2009)",
+       y = "Count",
+       x = "Temporary visas") +
+  geom_text(aes(label=round(Count)), vjust = -0.5,size = 6)
+
+
+
+tempvisa2 <- read.csv(file= "C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Temporary Visa figures Australia 2017 .csv", header=TRUE, sep=",")
+
+tempvisa2
+
+names(tempvisa2)[1]<-"Temporary_visas"
+
+tempvisa2
+
+p11 <- ggplot(tempvisa2 ,aes(x = Temporary_visas, y=Count))
+ 
+
+p11 + geom_bar(stat="identity",fill = "#0072B2" ) +  theme_minimal() +
+  theme(axis.text.x=element_text(angle=45,hjust=1,face = c('bold', 'bold', 'bold', 'bold', 'bold'))) +
+  labs(title = "Temporary visa subclasses numbers - Overall Australia (2017)",
+       y = "Count",
+       x = "Temporary visas") +
+  geom_text(aes(label=round(Count)), vjust = -0.5,size = 6)
+
+
+permvisa <- read.csv(file= "C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Permanent visas by sublass 2004 Australia.csv", header=TRUE, sep=",")
+
+permvisa
+
+names(permvisa)[1]<-"Permananent_visas"
+
+permvisa
+
+p12 <- ggplot(permvisa ,aes(x = Permananent_visas, y=Count))
+ 
+
+p12 + geom_bar(stat="identity",fill = "#CC79A7" ) +  theme_minimal() +
+  theme(axis.text.x=element_text(angle=45,hjust=1,face = c('bold', 'bold', 'bold', 'bold', 'bold'))) +
+  labs(title = "Permanent visa subclass numbers - Overall Australia (2004)",
+       y = "Count",
+       x = "Permanent visas") +
+  geom_text(aes(label=round(Count)), vjust = -0.5,size = 6)
+
+
+permvisa1 <- read.csv(file= "C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Permanent visa subclass numbers 2009 .csv", header=TRUE, sep=",")
+
+permvisa1
+
+names(permvisa1)[1]<-"Permanent_visas"
+
+permvisa1
+
+p13 <- ggplot(permvisa1 ,aes(x = Permanent_visas, y=Count))
+ 
+
+p13 + geom_bar(stat="identity",fill = "#D55E00" ) +  theme_minimal() +
+  theme(axis.text.x=element_text(angle=45,hjust=1,face = c('bold', 'bold', 'bold', 'bold', 'bold'))) +
+  labs(title = "Permanenet visa subclass numbers - Overall Australia (2009)",
+       y = "Count",
+       x = "Permanent visas") +
+  geom_text(aes(label=round(Count)), vjust = -0.5,size = 6)
+
+
+
+permvisa2 <- read.csv(file= "C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Permanent Visa subclass numbers 2017 .csv", header=TRUE, sep=",")
+
+permvisa2
+
+names(permvisa2)[1]<-"Permanent_visas"
+
+permvisa2
+
+p13 <- ggplot(permvisa2 ,aes(x = Permanent_visas, y=Count))
+ 
+
+p13 + geom_bar(stat="identity",fill = "#0072B2" ) +  theme_minimal() +
+  theme(axis.text.x=element_text(angle=45,hjust=1,face = c('bold', 'bold', 'bold', 'bold', 'bold'))) +
+  labs(title = "Permanent visa subclass numbers - Overall Australia (2017)",
+       y = "Count",
+       x = "Permanent visas") +
+  geom_text(aes(label=round(Count)), vjust = -0.5,size = 6)
+
+
+CTVI <- structure(list(...1 = c("0", "$1– 299", "$30 - 649", "$650– 999"), 
+`Temporary Work (Skilled)` = c(405, 2364, 6496, 19248,41595, 18346, 12446, 9848, 1112), Student = c(2169, 33846, 104569, 27140, 6737, 1162,
+350, 226, 1827), `New Zealand Citizen` = c(2446, 16045, 51337, 104133, 98986, 50353, 30035, 16655, 5143), `Working Holiday Maker` = c(515, 3670, 18119,  24476, 7869 , 1601, 469,  166, 757), `Other Temporary visa` = c(887, 5325, 24234, 31975, 16269, 3786,1813, 1003, 1239)),  
+row.names = c("Nil", "$1– $299" , "$300 - $649","$650– $999" ,"$1,000– $1,499" ,"$1,500– $1,999" , "$2,000– $2,999", "$3,000 or more" , "Not stated"), 
+class = c("tbl_df", "tbl", "data.frame"))
+
+
+CTVI.tbl <- CTVI[, -1]
+CTVI.mat <- as.matrix(CTVI.tbl)
+rownames(CTVI.mat) <- CTVI[, 1]
+names(dimnames(CTVI.mat)) <- c("Income", "Temporary Visa Class")
+
+
+tempinc1 <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Income level temporary skill workers (Subclass 457).csv")
+
+tempinc1
+
+
+names(tempinc1)[1]<-"Income_level"
+
+
+p14 <- ggplot(tempinc1 , aes(x = Income_level, y=Count))
+ 
+
+p14 + geom_bar(stat="identity",fill = "#F0E442" ) +  theme_minimal() +
+  theme(axis.text.x=element_text(angle=45,hjust=1,face = c('bold', 'bold', 'bold', 'bold', 'bold'))) +
+  labs(title = "Income level distribution - Temporary work skilled (subclass 457) Census 2016 ",
+       y = "Count",
+       x = "Income level per week in AUD ") +
+  geom_text(aes(label=round(Count)), vjust = -0.5,size = 6)
+
+
+
+
+tempincstudents <- read_excel("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Income level distribution temporary visa students .xlsx")
+
+tempincstudents
+
+
+names(tempincstudents)[1]<-"Income_level"
+
+tempincstudents
+ p15<- ggplot(tempincstudents, aes(x = Income_level, y=Count)) 
+ 
+ p15+  geom_bar(stat="identity",fill = "#F0E442" ) +  theme_minimal() +
+  theme(axis.text.x=element_text(angle=45,hjust=1,face = c('bold', 'bold', 'bold', 'bold', 'bold'))) +
+  labs(title = " Income level distribution - Temporary Visa (Students) Census 2016 ",
+       y = "Count",
+       x = "Income level per week in AUD") +
+  geom_text(aes(label=round(Count)), vjust = -0.5,size = 6)
+
+
+Income_level_temporary_skill_workers_Subclass_457_ <- read_excel("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Income level temporary skill workers (Subclass 457).xlsx")
+
+Income_level_temporary_skill_workers_Subclass_457_
+
+names(Income_level_temporary_skill_workers_Subclass_457_)[1] <- "Income_level"
+
+
+p16 <- ggplot(Income_level_temporary_skill_workers_Subclass_457_ , aes(y = Income_level, x = Proportion))
+
+p16 + geom_point(colour = "#E495A5") +
+  geom_segment(aes(x = 0, y = Income_level, xend = Proportion, yend= Income_level),linetype = 2) +
+  labs(title = "Proportion of different income levels per week (AUD) within the total distribution of temporary migrant skilled worker population (Census year 2016) ",
+       x = "Proportion",
+       y = "Income Level") +
+  geom_text(aes(label=round(Proportion,2)), hjust = -.2,size = 3) +
+  scale_x_continuous(limits = c(0,1))
+ 
+library(readxl)
+Proportion_of_different_income_levels_within_the_total_permanent_migrant_population_ <- read_excel("C:/Users/axelp/Documents/RMIT/Semester 2/Data Visualisation/Assignment 3/Proportion of different income levels within the total permanent migrant population .xlsx")
+View(Proportion_of_different_income_levels_within_the_total_permanent_migrant_population_)
+
+Proportion_of_different_income_levels_within_the_total_permanent_migrant_population_
+
+names(Proportion_of_different_income_levels_within_the_total_permanent_migrant_population_)[1] <- "Income_level"
+
+
+p17 <- ggplot(Proportion_of_different_income_levels_within_the_total_permanent_migrant_population_ , aes(y = Income_level, x = Proportion))
+
+p17 + geom_point(colour = "#009E73") +
+  geom_segment(aes(x = 0, y = Income_level, xend = Proportion, yend= Income_level),linetype = 2) +
+  labs(title = "Proportion of different income levels per week (AUD) within the total Permanent migrant skilled worker population (Census year 2016) ",
+       x = "Proportion",
+       y = "Income Level") +
+  geom_text(aes(label=round(Proportion,2)), hjust = -.2,size = 3) +
+  scale_x_continuous(limits = c(0,1))
+ 
+
+
+
+````
