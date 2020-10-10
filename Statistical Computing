@@ -1,0 +1,185 @@
+/*Reading the plastics.csv into SAS using appropriate formatting/ informatting*/
+
+data plastics;
+informat Plastic 3. NetStation 2. Replicate 1. Type $10. Length 8.2 Colour $20. PolymerType $20.;
+Infile "/home/u35897573/sasuser.v94/Assignment 2/plastics_info.csv" delimiter="," firstobs=2 dsd missover;
+Input Plastic w. NetStation w. Replicate w. Type $ Length w.  Colour $ PolymerType $ ;
+Format Plastic 3. NetStation 2. Replicate 1. Type $10. Length 8.2 Colour $20. PolymerType $20.;
+run;
+
+/*Reading replicates.csv into SAS using appropriate formatting / informatting*/
+
+data replicates;
+informat NetStation 2. Replicate 1. Date ddmmyy10. StartTime time5. EndTime time5. Duration 2.;
+Infile "/home/u35897573/sasuser.v94/Assignment 2/replicates.csv" delimiter="," firstobs=2 dsd missover;
+Input NetStation Replicate Date StartTime EndTime Duration;
+Format NetStation 2. Replicate 1. Date ddmmyy10. StartTime time5. EndTime time5. Duration 2.;
+run;
+
+/*Creating a libref to point to the sas files condition ,survey and vessels */
+
+libname data "/home/u35897573/sasuser.v94/Assignment 2";
+
+/*Use a t test to determine whether there is a difference in the average length of plastic between the Neuston 
+and Manta net types. Use α=0.02.
+Before a ttest can be used to determine the difference in the average length of plastic between the Neuston 
+and Manta net types, we need to join several tables together using join conditions. 
+
+The objective is to use the plastics table as the main base that has all the lengths of the plastics variable table to 
+match with the dates from the replciates table when the tow was undertaken using a left join on netstation and replicates. 
+This combined set will then be joined with the vessels table which has details about manta and neuton nettypes using a 
+left join on dates. This means whenever the non key attributes (nettype) will populate into the joined table whenever 
+there is a matching date with the left (first) combined table of plastics and replicates. */
+
+proc sql;
+create table a1 as
+select * 
+from plastics t1 left join replicates t2 on
+t1.netstation = t2.netstation and t1.replicate=t2.replicate;
+quit;
+
+/*Joining the a1 table with vessels using a leftjoin */
+
+proc sql;
+create table a2 as 
+select *
+from a1 left join data.vessel t3 on
+a1.date = t3.date ;
+quit;
+
+/*Now we have the all the variables in one table (a2) that we require in one file to carry out the ttest*/
+
+proc ttest data=a2 Alpha=0.02;
+var length; 
+class nettype;
+run;
+
+/*Create a new variable “Substance” to represent the source of the material collected,
+ where 1=man-made, 2=natural and 3=mixed sample.
+ We use the survey file to recode the variables 
+ Total plastics gives us the count of manmade 
+ Diftwood is natural 
+ Pumice is mixedsample
+ 
+We first we need to gather the total plastics (hard , soft, lines, pellets & styrofoam under 1 which we can then later 
+recode as "man-made", pumice as 2 which can be later recoded as natural (Pumice ( /ˈpʌmɪs/), called pumicite in its powdered 
+or dust form, is a volcanic rock that consists of highly vesicular rough textured volcanic glass, which may or may not 
+contain crystals :Source wikipedia) and driftwood  as 3 which can be later recoded as mixed (Driftwood is wood that has been washed onto 
+a shore or beach of a sea, lake, or river by the action of winds, tides or waves. There is also a subset of driftwood known as drift lumber. 
+Drift lumber includes the remains of man-made  wooden objects, such as buildings and their contents washed into the sea during storms : source wikipedia) */
+
+
+
+data want(keep=NetStation Replicate materials_collected count);
+  set data.SURVEY;
+  materials_collected='1';
+  count=sum(HardPlastics, SoftPlastics, PlasticLines, Styrofoam, Pellets);
+  output;
+  materials_collected='2';
+  count=Pumice;
+  output;
+  materials_collected='3';
+  count=Driftingwood;
+  output;
+run;
+
+/*now we can recode the variable materials_collected as substance */
+
+proc sql;
+create table q3 as 
+select *,
+(case 
+when materials_collected = '1' then "man-made"
+when materials_collected = '2'  then "natural"
+when materials_collected = '3' then "mixed sample"
+else "error" end) as Substance
+from work.want;
+quit;
+
+
+
+
+/*Produce a graph that compares the frequency of the new variable you created in task 3. 
+Ensure the graph is clearly labelled with the correct names.
+
+For this task we need to merge replicates with vessel so that each combination of netstation 
+and replciate has a corresponding nettype .  Finally we left join thiscombined  dataset with q3 as the base 
+table which then eventaully have a nettype for the different substances for each combination of netstation 
+and replciate  */
+
+
+
+
+proc sql;
+create table a3 as 
+select *
+from work.replicates a left join data.vessel b on
+a.date =b.date ;
+quit;
+run;
+
+proc sql;
+create table a4 as 
+select *
+from work.q3 a left join work.a3 b on
+a.netstation =b.netstation and a.replicate=b.replicate;
+quit;
+run;
+
+
+proc sgplot data=a4;
+vbarparm category=nettype response=count / group=substance groupdisplay=cluster;
+run;
+
+/*Q5
+For additional analysis we  need to merge the dataset condition ( variables include - vessel speed , 
+vessel direction, sea temperature, salinity , start latitude longitude, end latitude longitude ) 
+with survey (variables include - the various substances collected i.e hardplastics , softplastics , pellets , styrofoam and their respective counts along with sea surface plastic concentration) */
+
+/*merging using left join which will contain all the variables with all observations included as both sets have the same no of observations */
+
+proc sql;
+create table a5 as 
+select *
+from data.condition a left join data.survey b on
+a.netstation =b.netstation and a.replicate=b.replicate;
+quit;
+run;
+
+
+
+
+/*Histogram of the sea surface plastic concentration */
+proc univariate data= a5;
+var Cs;
+histogram cs;
+run;
+
+/*Horizontal bar of the average sea surface conc per NetStation by NetStation*/
+
+proc sgplot data=a5;
+hbar netstation / response=Cs stat=mean;
+run;
+
+
+
+/*Creating new variable CsperunitFlow */
+data work.a6;
+set work.a5;
+CsperunitFlow = Cs/Flow;
+run;
+
+/*Vertical bar of Sea surface plastic concentration per sq km represented as a percentage of sum grouped by replicate per NetStation*/
+
+proc sgplot data=work.a6 pctlevel=graph;
+  vbar netstation / response=Csperunitflow stat=percent
+     group=replicate;
+run;
+
+/*Pie chart of colour of plastic captured across NetStations*/
+
+proc gchart data=plastics;
+title 'Pie chart of colour';
+pie colour;
+run;
+quit;
