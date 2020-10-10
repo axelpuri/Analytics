@@ -1,0 +1,305 @@
+---
+title: "MATH2349 Semester 1, 2019"
+author: "Akhil Puri , S3774583"
+subtitle: Assignment 2
+output:
+html_notebook: default
+---
+## Setup
+
+Install and load the necessary packages to reproduce the report here:
+
+```{r, echo = TRUE, message=FALSE, eval = FALSE}
+
+# loading packages required to run the report 
+
+
+install.packages(readr)
+
+
+options(repos="https://cran.rstudio.com" )
+
+```
+
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(Hmisc)
+library(outliers)
+library(magrittr)
+library(rmarkdown)
+library(knitr)
+```
+
+## Read WHO Data
+
+Read the WHO data using an appropriate function.
+
+```{r}
+
+# reading World health organisation data using the read.csv function 
+
+getwd()
+
+setwd("C:/Users/axelp/Documents/RMIT/Semester 1/Data Preprocessing/Assignment 2")
+
+who<- read.csv(file="C:/Users/axelp/Documents/RMIT/Semester 1/Data Preprocessing/Assignment 2/who.csv", header = TRUE, sep = ",")
+
+head(who)
+
+```
+
+
+## Tidy Task 1:
+
+
+```{r, echo=TRUE}
+
+# Gathering the column names with 4 different pieces of informtion unser a single column called code
+
+who_1<- who %>% gather('new_sp_m014', 'new_sp_m1524','new_sp_m2534','new_sp_m3544','new_sp_m4554','new_sp_m5564','new_sp_m65', 'new_sp_f014',
+                'new_sp_f1524','new_sp_f2534','new_sp_f3544','new_sp_f4554','new_sp_f5564','new_sp_f65','new_sn_m014','new_sn_m1524',
+                'new_sn_m2534', 'new_sn_m3544','new_sn_m4554','new_sn_m5564','new_sn_m65','new_sn_f014','new_sn_f1524','new_sn_f2534',
+                'new_sn_f3544', 'new_sn_f4554','new_sn_f5564','new_sn_f65','new_ep_m014','new_ep_m1524','new_ep_m2534','new_ep_m3544',
+                'new_ep_m4554','new_ep_m5564','new_ep_m65','new_ep_f014','new_ep_f1524','new_ep_f2534','new_ep_f3544','new_ep_f4554',
+                'new_ep_f5564','new_ep_f65','new_rel_m014','new_rel_m1524','new_rel_m2534','new_rel_m3544','new_rel_m4554','new_rel_m5564',
+                'new_rel_m65','new_rel_f014','new_rel_f1524','new_rel_f2534','new_rel_f3544','new_rel_f4554','new_rel_f5564','new_rel_f65',
+                key = "code", value = "value")
+
+head(who_1)
+
+```
+
+
+
+## Tidy Task 2:
+
+
+```{r}
+
+# Separating the code column into 4 seprate columns using the seprate function from the dplyr package 
+
+who_2<- who_1 %>% separate("code", into = c("new", "var", "sex"), sep = "_")
+
+who_3<- who_2 %>% extract_("sex", into = c("sex", "age"), "(.{1})(.{4})")
+
+head(who_3)
+
+```
+
+
+## Tidy Task 3:
+
+
+```{r}
+
+# Spreading what was initally gathered and separated using the spread fucntion , and the mutate function by creating a separate index column in order to avoid duplicacy in observations
+
+who_4 <- who_3 %>%
+         group_by_at(vars(-value))%>%
+         mutate(row_id= 1:n()) %>%
+         ungroup() %>%
+         spread(key = var,value=value)%>%
+         select (-row_id)
+
+head(who_4)
+
+
+```
+
+
+## Tidy Task 4: 
+
+
+```{r}
+
+# Factorising sex and age , creating appropriate levels and labels and ordering the levels using the mutate function and relevant arguments
+
+
+who_5<- who_4 %>% mutate(sex = factor(sex, levels = c('m' ,'f' ), labels=c('m','f')))
+
+
+who_6 <- who_5 %>% mutate(age = factor(age, levels=c(014, 1524,2534, 3444, 4554, 5564, 65),
+                                                        labels = c('<15','15-24','25-34','35-44','45-54','55-64','65>='), ordered = TRUE))
+                           
+head(who_6)
+
+```
+
+## Task 5: Filter & Select
+
+
+
+```{r}
+
+# Droppping the redundant columns iso2 and new from the dataframe and filtering in the data from 3 countries 
+
+
+who_7 <- subset(who_6, select = -c(iso2,new))
+
+WHO_subset<- who_7 %>% filter(country=="Italy" | country=="Myanmar" | country=="Sri Lanka")
+
+WHO_subset
+
+```
+
+
+
+## Read Species and Surveys data sets
+
+```{r}
+
+#Reading in the species and surveys data set using the read.csv function 
+
+species<- read.csv(file="C:/Users/axelp/Documents/RMIT/Semester 1/Data Preprocessing/Assignment 2/species.csv",header = TRUE, sep = ",")
+
+head(species)
+
+surveys<- read.csv(file="C:/Users/axelp/Documents/RMIT/Semester 1/Data Preprocessing/Assignment 2/surveys.csv",header = TRUE,sep = ",")
+
+head(surveys)
+```
+
+
+## Task 6: Join  
+
+
+```{r}
+
+# Adding data from the species dataframe to the surveys dataframe using key variable "species_id"
+
+surveys_combined<- surveys %>% left_join(species, by ="species_id")
+
+head(surveys_combined)
+```
+
+
+## Task 7: Calculate 
+
+
+```{r}
+
+#Calcualting the average weight and hindfoot_length of one of the species observed in each month regardless of the year 
+
+species_leucogaster<- surveys_combined[which(surveys_combined$species=='leucogaster'), ] 
+
+species_leucogaster1<- species_leucogaster%>%   group_by(month)%>%
+  summarise(Mean = mean(weight,na.rm = TRUE))
+
+kable(species_leucogaster1, caption = "Mean weight of Penicillatus for all months across observed years")
+
+
+ species_penicillatus<- surveys_combined[which(surveys_combined$species=='penicillatus'), ]
+            
+species_penicillatus1<- species_penicillatus%>%
+  group_by(month)%>%
+  summarise(Mean = mean(hindfoot_length,na.rm = TRUE))
+
+kable(species_penicillatus1, caption = "Mean hindfoot_length of Penicillatus for all months across observed years")
+
+
+```
+
+
+
+## Task 8: Missing Values
+
+
+```{r}
+
+#Selecting one year to find the total missing values (NAs) in the weight variable grouped by species, and then replacing the missing values with the mean value for the species in that year 
+
+surveys_combined_year<- surveys_combined[which(surveys_combined$year=='1981'),]
+
+surveys_combined_year1<- surveys_combined_year %>%  group_by(species) %>% 
+  summarise(NA_sum = sum(is.na(weight)))
+
+kable(surveys_combined_year1, caption = "Count of missing values in the weight column grouped by species")
+
+surveys_weight_imputed<- surveys_combined %>% group_by(species) %>% 
+mutate(weight = ifelse(is.na(weight), mean(weight, na.rm = T), weight))
+
+head(surveys_weight_imputed)
+
+
+```
+
+
+## Task 9: Inconsistencies or Special Values
+
+Taking a closer look at 'surveys_weight_imputed' dataframe , specifically the weight column we can see certain special values ( NaN) (i.e Not a number)  populating in 1724 observations. This is partly due to the species variable having one missing value (NA) in 763 observations. Those rows did not have an entry for weight (NA) so as a consequence mean weight of all those entries lead to a NULL value (NA) divided by 0 entries having a quantifiable / measurable weight resulting in Nan. Similarly I was able to identify a species "harrisi" which in the dataframe preceeeding the imputation of mean weight values in 'surveys_weight_imputed' did not have a entry for weight in 437 observations (NA) resulting in further NANs based on the previus logic (Those rows did not have an entry for weight (NA) so as a consequence mean weight of all those entries lead to a NULL value (NA) divided by 0 entries having a quantifiable / measurable weight resulting in Nan). 
+
+
+```{r}
+
+# Check every numerical column whether they have infinite or NaN or NA values using a function called is.specialorNA and then summing those identified NAs for every numerical variable 
+
+is.specialorNA <- function(x){if (is.numeric(x)) (is.infinite(x) | is.nan(x) | is.na(x))}
+
+sapply(surveys_weight_imputed, function(x) sum(is.na(x)))
+
+```
+
+
+
+
+## Task 10: Outliers
+
+I will use the winsorising / capping technique to handle the outliers of the variable hindfoot_length. 
+The custom function cap()will replace the outliers leying outside the fence (Q1-1.5*IQR, Q3+1.5*IQR ) with  5th percentile and 95th% values respectively . 
+
+```{r}
+
+#We create a box plot to identify the univariate outliers for the variable "Hindfoot_length"
+
+surveys_combined$hindfoot_length%>% boxplot(main="Box plot of Hindfoot Length", ylab="Hindfoot Length", col = "grey")
+
+#Displaying the summary statistics for hindfoot_length 
+
+summary(surveys_combined$hindfoot_length)
+
+#getting rid of the NAs ( missing values )
+
+surveys_combined<- filter (surveys_combined,!is.na(hindfoot_length))
+
+#Summary statistics post elimination of NAs
+
+summary(surveys_combined$hindfoot_length)
+
+#defining function cap to handle the outliers, 
+
+cap <- function(x){
+    quantiles <- quantile( x, c(.05, 0.25, 0.75, .95 ) )
+    x[ x < quantiles[2] - 1.5*IQR(x) ] <- quantiles[1]
+    x[ x > quantiles[3] + 1.5*IQR(x) ] <- quantiles[4]
+    x
+}
+
+#subset of surveys_combined with variable hindfoot length
+
+surveys_combined_sub<- surveys_combined%>% select(hindfoot_length) 
+
+#See descriptive statistics
+
+summary(surveys_combined_sub)
+
+#Applying user defined function cap to the data frame 
+
+surveys_combined_capped <- sapply(surveys_combined_sub, FUN = cap)
+
+summary(surveys_combined_capped)
+
+#We can now see that the max value is 58 which is less than the upper fence i.e 3rd Quartile + 1.5 * IQR 
+#[36 + 1.5(36-21) = 58.5 ] 
+#Similarly the minimum value is 2 which is greater than the lower fence i.e 1st quartile -1.5 * IQR 
+#[21-1.5*15 = -1.5]
+#Thus we have statistically dealt with the outliers
+
+```
+
+
+
+
+<br>
+<br>
