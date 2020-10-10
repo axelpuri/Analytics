@@ -1,0 +1,263 @@
+---
+title: "A Statistical investigation of Wages and Salaries "
+subtitle: "Hypothesis testing to determine whether the total salaries earned per quarter is higher for the State of Tasmania or the Australian Capital Territory"
+author: "Vanessa Fraser s3770781
+         Akhil Puri     s3774583"
+date: "31/05/2019"
+output:
+slidy_presentation:
+font_adjustment: 0
+highlight: haddock
+mathjax: "default"
+df_print: paged
+---
+
+```{r setup, include=FALSE}
+# Use this chunk to quietly load your pacakges
+
+knitr::opts_chunk$set(
+	fig.align = "center",
+	message = FALSE,
+	warning = FALSE
+)
+# Packages loaded in this chunk will not appear in the presentation. 
+
+library(ggplot2) # Useful for creating plots
+library(dplyr)  # Useful for data maipulation
+library(knitr) # Useful for creating nice tables
+library(car) # Useful for determining the right statistical test 
+
+```
+
+
+# Introduction
+
+Wages and salaries are a concern for not only working Australians but government and industries alike. This report aims to understand if location by state influences earnings per employee through the investigation of variance between specifically Tasmania (TAS) the Australian Capital Territory (ACT) between 2001 to 2018. Wages and salaries are the focus of this report and are defined by the ABS as ‘Gross earnings before taxation and other deductions. Includes provisions for employee entitlements’ (Australian Bureau of Statistics 2019).
+
+Occupational distribution, a key influence on wages, both within and across different industries are subject to continual change. Earnings per employee can fluctuate weekly, seasonally or yearly with contributing factors such as proportion of full-time, part-time or casual employees. This continual variance leads to compositional changes within businesses so to understand wage earnings across states, analysis of trend movements over an extended period of time holds the key to an insightful statistical investigation.
+
+To determine if there is statistically significant variance between the wages of Tasmania and the Australian Capital Territory the following investigation uses tests and theories such as the Central Limit therom, Homogeneity of variance and Null hypothesis test two sample t test. These terms are defined below: 
+
+The Central Limit Theorem (CLT) is a statistical rule that states if, the underlying population distribution of a variable is normally distributed, the resulting sampling distribution of the mean will be normally distributed. As our sample data is greater than 30 we can apply this rule to our data and assume the sampling distribution of the mean is approximately normal. Thanks to the CLT rule, we can proceed with the two-sample t test.
+
+Homogeneity of variance, is understood as the assumption of equal variance. In other words the distribution scores around the mean of the two samples is considered equal (Baglin 2016). This can be tested using Levene’s Test which reports a p value that is compared to the standard 0.05 significance level. In the below analysis Levene’s Test will be used on the average wages for TAS and ACT to test for equal variance.
+
+Null hypothesis significance testing, or hypothesis testing for short, is an inferential decision making method. It can be understood as a statistical hypothesis that assumes equality, no difference or no association/relationship. The alternative hypothesis is therefore that the variances of the two groups are not equal. The two-sample t-test, is used to compare the population mean of two populations in cases where it is assumed the populations being compared are independant, have equal variance and are nomally distributed (Baglin 2016). 
+
+Through testing the data using the explained methodologies above we can answer the problem statement regarding wage and salary variation between Tasmania and The Australian Capital Territory with a considerable degree of certainty. 
+
+
+# Problem Statement
+
+This statistical investigation aims to determine whether there is a statistically significant variance in the mean wages and salaries between Tasmania and The Australian Capital Territory. Data from the Quarterly Business Survey Index (open source data available on the Australian Bureau of Statistics website) was sourced and specific data regarding WAGES AND SALARIES BY STATE at Current prices was extracted from the Survey data. Levene's test was used to ensure homogeneity of variance and the null hypothesis - that there is no difference between the population mean wage and salary between Tasmania and the ACT between 2001-2018 - was tested through a two sample t test.
+
+The driving objective of this investigation was to determine if the large variance in the total wages between the other states of Australia would also apply between Tasmania and the ACT. This statistical question has implications for the states in question and the economy more broadly. If we fail to reject the null hypothesis and find that the mean salary is not statistically significant, what other parallels can be drawn between the two states? This opens the door for further statistical investigations such as the relationship between wages, per capita wages and salaries paid / drawn as we have not accounted for population for the two states ,  spending and socio-economic welfare between states.
+
+
+# Data
+
+The data for our statistical investigation was sourced from the Australian Bureau of Statistics website (https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/5676.0Dec%202018?OpenDocument)TABLE 19. WAGES AND SALARIES BY STATE, Current prices. 
+We subsetted the original data source to work with just the data for wages earned by  employees of the state across industries (MINING,MANUFACTURING, ELECTRICITY, GAS, WATER AND WASTE SERVICES etc). Wages and salaries refer to earnings before taxation and other deductions and includes provisions for employee entitlements.
+
+The data has been published and compiled as a series by the Australian Bureau of Statistics (ABS) in its Quarterly Business Indicators Survey for the Business Indicators Publication which contains estimates of wages and salaries, company profits, and the book value of inventories for businesses other than those that are government owned both local and state as well as commonwealth in Australia. 
+
+The survey is conducted by web form on a quarterly basis and is based on a random sample of approximately 16,000 units, stratified by industry, state/territory and number of employees. All large private sector businesses and other statistically significant units are included in the sample. Since the entire population of in-scope private businesses in Australia (approximately 1,000,000 units) could not be surveyed due to the sheer scale, the published estimates are subject to some degree of sampling error.
+
+Estimates are subject to both sampling and non sampling error. Certain estimates have an estimated relative standard error of 10 to 25% and should be approached with a degree of caution. Additionally, some estimates have an unusually high random sampling error (RSE) of between 25 to 50% and are too unreliable to be considered suitable for any practical purposes, these have only been applied to one quarter of March 2009. For Tasmania, the smoothed standard error has been calculated by the statistical authority as 130 million dollars per quarter and the Australian Capital Territory as 221 million per quarter.
+
+Coming to the variables and the series type of the data, we have the quarters starting from MAR 2001 to DEC 2018 which constitutes the time period across which we are statistically analyzing the data,  the figure in millions of dollars by employees in select industries for wages earned before application of taxes and deduction including entitlements for both Tasmania and the Australian Capital Territory.
+
+
+# Descriptive Statistics and Visualisation
+
+Now let us use the packages in R to display and summarise some descriptive statistics for the data set.
+
+Here we are trying to determine whether the wages in Tasmanians is on average higher or lower than the wages of The Australian capital territory paid/earmed at prominent industries not including government & commonwealth owned businesses , so we will not be removing outliers if any, as that helps us in our statistical investigation to determine which state has higher wages. . The dataset has no missing data. 
+
+```{r}
+#Readin in the data into a dataframe object 
+
+wages <- read.csv(file = "C:/Users/axelp/Documents/RMIT/Semester 1/Introduction to Statistics/Assignment 3/Data for assignment 3.csv", header = TRUE ,sep = ",")
+
+
+wages %>% summarise(Min = min(Wages....Tasmania,na.rm = TRUE),
+                                           Q1 = quantile(Wages....Tasmania,probs = .25,na.rm = TRUE),
+                                           Median = median(Wages....Tasmania, na.rm = TRUE),
+                                           Q3 = quantile(Wages....Tasmania,probs = .75,na.rm = TRUE),
+                                           Max = max(Wages....Tasmania,na.rm = TRUE),
+                                           Mean = mean(Wages....Tasmania, na.rm = TRUE),
+                                           SD = sd(Wages....Tasmania, na.rm = TRUE),
+                                           n = n(),
+                                           Missing = sum(is.na(Wages....Tasmania))) -> table1
+
+knitr::kable(table1 )
+
+wages %>% summarise(Min = min(Wages....Australian.Capital.Territory,na.rm = TRUE),
+                                           Q1 = quantile(Wages....Australian.Capital.Territory,probs = .25,na.rm = TRUE),
+                                           Median = median(Wages....Australian.Capital.Territory, na.rm = TRUE),
+                                           Q3 = quantile(Wages....Australian.Capital.Territory,probs = .75,na.rm = TRUE),
+                                           Max = max(Wages....Australian.Capital.Territory,na.rm = TRUE),
+                                           Mean = mean(Wages....Australian.Capital.Territory, na.rm = TRUE),
+                                           SD = sd(Wages....Australian.Capital.Territory, na.rm = TRUE),
+                                           n = n(),
+                                           Missing = sum(is.na(Wages....Australian.Capital.Territory))) -> table2
+
+
+knitr::kable(table2 )
+
+
+boxplot(wages$Wages....Tasmania,
+        main = "Wages for Tasmania in millions of dollars",
+        xlab = "Millions of dollars",
+        ylab = "Wages",
+        col = "orange",
+        border= "brown",
+        horizontal = TRUE,
+        notch = TRUE )
+
+
+boxplot(wages$Wages....Australian.Capital.Territory,
+        main = "Wages for Australian Capital territory in millions of dollars",
+        xlab = "Millions of dollars",
+        ylab = "Wages",
+        col = "blue",
+        border= "green",
+        horizontal = TRUE,
+        notch = TRUE )
+
+#scatter splot
+plot(wages$Wages....Tasmania, wages$Wages....Australian.Capital.Territory)
+
+#highdensity vertical lines
+plot(wages$Wages....Tasmania, xlab = 'Series ID', ylab= 'Wages in Tasmania in millions', main = 'Total earned per quarter by employees across significant industries'  ,type = "h" )
+
+plot(wages$Wages....Australian.Capital.Territory, xlab = 'Series ID', ylab= 'Wages in Australian capital territory in millions', main = 'Total earned per quarter by employees across significant industries'  ,type = "h" )
+
+
+
+```
+
+
+# Hypothesis Testing
+
+We will use the independent 2 sample t test to determine whether the wages earned by resident Tasmanians is higher or lower than the wages earned by a resident of The Australian capital territory, both of whom are employed at prominent and statistically significant industries. This hypothesis test has been chosen because the samples collected by the Australian Bureau of Statistics from the two states would not have been dependent on each other i.e the sample collection process to determine the total wages earned by employees in the 1,000,000 units belonging to different prominent industries (excluding public and government enterprises) by sampling the 16,000 units stratified by industry, state territory as well as number of employees would have been completely independent of each given the disjoint mutually exclusive sampling pool of the two states. 
+
+First, we need to determine the type of two sample t test to carry out our statistical investigation and the eventual inference of the same. This is done using Levene’s test to check whether we can assume equal variance in the two sample based wages earned / paid distributions over 72 quarters (18 years) for Tasmania & The Australain capital territory. If Levene’s test is statistically insignificant i.e. p-value > 0.05 then we can assume equal variance. If not then we
+will use the Welsh 2 sample t test.
+
+The Levene’s test has the following statistical hypotheses:
+
+H0:σ1^2=σ2^2
+HA:σ1^2≠σ2^2
+
+where σ1^2 and σ2^2 refer to the population variance of the sample of total wages earned in Tasmania and Australian Capital territiry respectively. The Levene’s test reports a p-value that is compared to the standard 0.05 significance level. We can use the leveneTest() function in R to compare the variances of the two groups of samples respectively. 
+
+The two-sample t-test has the following statistical hypothesis:
+
+H0:μ1−μ2=0 HA:μ1−μ2≠0
+where μ1 and μ2 refer to the population means of the wages earned by / paid to the employee residents of Tasmania and the Australain capital territory respectively. 
+
+The null hypothesis (H0) is simply that the difference between the two independent population means is 0. The alternative hypothesis (H1) is that the difference between the two independent population means is not 0 , i.e there is a difference between the population means i.e the average wages earned by population of employees in  drawing wages is not equal to the average wages earned by population of employees in the Australian capital territory. The difference between the means of the sample for Tasmania & Australian capital territory is estimated by 1568.931 - 1520.444 = 48.487
+
+
+```{r}
+#Levene's test
+#The null hypothesis(H0) is the difference between the variances of the 2 groups are equal . The alternative hypothesis is that the variances of the two groups of sample wages earned are not equal. 
+
+y<- c(wages$Wages....Tasmania, wages$Wages....Australian.Capital.Territory)
+
+group<- as.factor(c(rep(1,length(wages$Wages....Tasmania)), rep(2, length(wages$Wages....Australian.Capital.Territory))))
+
+leveneTest(y,group)
+
+#The p value for Levene's Test of equal variance for the wages earned independant sample products belonging to Tasmania and is p= 0.141 . We find that p>0.05 significance level so we are safe to assume equal variances.
+#If the Levene’s test was statistically significant, i.e. p<.05, this would imply that we need to reject H0. In other words, it’s not safe to assume equal variance.
+
+#We can now perform the 2 sample t test assuming equal variances and a two sided hypothesis test .
+
+t.test(
+  wages$Wages....Tasmania,
+  wages$Wages....Australian.Capital.Territory,
+  var.equal = TRUE,
+  alternative="two.sided"
+  )
+# The t statistic is t = -0.17768 .Lets compare this with two tailed t critical value t* with df
+#df = n1 + n2- 2
+#df = 40 +40 -2 = 78
+#Assuming α=0.05 and a two-tailed test, we find t∗ using the R function:
+
+qt(p = 0.025, df = 72 + 72 - 2)
+
+#As the test statistic t from the two-sample t-test assuming equal variance was t=0.79577, which was not more extreme than -1.976811, we fail to reject H0. According to the critical value method, there is no statistically significant difference between the two wages samples from Tasmania and the Australain capital territory .
+
+#In other words we fail to find statistically significant evidence to support the alternative hypothesis that the wages in Tasmania and the wages in the Australian capital territory have different means i.e there is no suppport for the hypothesis that the wages in state are more than the other the other on an average or a measure of central tendency .
+
+
+
+```
+
+# Hypothesis Testing Cont.
+
+Interpreting the p value of the 2 sample t-test:
+
+First lets discuss the p value statistical hypothesis:
+H0:μ1−μ2=0 HA:μ1−μ2≠0
+
+where μ1 and μ2 refer to the population means of the wages in Tasmania and the Australian Capital territory respectively. The null hypothesis is simply that the difference between the two independent population means is 0.
+
+The difference between the wages of Tasmania and the Australian Capital territory estimated by the sample is 
+1568.931 - 1520.444 = 48.487.
+
+Now to the interpretation of the p value results:
+The p-value of the two-sample t-test will report the probability of observing a sample difference between the means of 48.487, or one more extreme, assuming the difference was 0 in the population (i.e. H0 is true).
+
+The two-tailed p-value was reported to be p = 0.4275 and according to the p-value method, as p = 0.4275 which is > α = 0.05, we failed to reject H0 implying that there wasn’t any statistically significant difference between the means.
+
+Interpreting the Confidence interval of the 2 sample t-test:
+
+The theory behind the confidence interval says that 100(1−α)% CI is an interval estimate for a population parameter, based on a given sample statistic, where if samples of a certain size n were repeatedly drawn from the population and a CI for each sample’s statistic was calculated, 100(1−α)% of these intervals would capture the population parameter, whereas the other 100(α)% would not. Note the 95% CI is the most common.
+
+95% CI does not capture H0, reject H0; 95% captures H0, fail to reject H0;
+
+As the population standard deviation is rarely known, we should always default to using the t-distribution and t-critical values to calculate interval estimates for sample means or in this case the 95% interval estimate for the difference of the sample mean (assuming Normality or the CLT applies). Only use a z-critical value if the population standard deviation is given (which is rare!).
+
+95% CI Lower Bound = round(Mean - tcrit * SE,2)
+95% CI Upper Bound = round(Mean + tcrit * SE,2)
+
+where SE = round(SD/sqrt(n),3)
+
+The confidence interval is the 95% CI [ -71.96033 168.93255]. We assumed H0 or our null hypothesis is that the diffeence between the population means is 0. Therefore this interval does capture H0, we failed to reject it, or fail to find statistically significant evidence to support that the alternative hypothesis that  wages of the population of Tasmania & Australian Capital territory have different means.
+
+
+# Discussion
+
+The null hypothesis - that there is no difference between the mean wage and salary between Tasmania and the ACT between 2001-2018 - was tested using the two-sample t test. This test was selected as the employees in the data set are independent of each other given the mutually exclusive sampling pool of the two states. While evidence of variation was found in the sample data between the two states, Levene’s test of homogeneity variance allowed equal variance to be assumed. The results of the two sample t test above reveals it is highly probable that wages for TAS and ACT are equal. As outlined in the data analysis section, the two-tailed p-value was reported to be p = 0.4275 which is > α = 0.05. Based on these results we failed to reject the null hypothesis finding no statistically significant difference between the wage means of the two states.
+
+Strengths: 
+The data used for this anaylsis was sourced from The Australian Bureau of Statistics' Quarterly Business Indicators Survey - a quarterly publication from a reputable government body. Through regularly releasing new data as well as adjusting existing data, the risks of error due to seasonal trends or sampling and non-sampling error can be mitigated. The survey frame is also updated quarterly to take account of new businesses and changes in the characteristics of businesses, such as industry and size.
+
+An additional strength of the source data from this publication is the substantial back log of information from previous surveys. Data as part of this survey has been collected since March 2001 and having this historic information regarding trends enables possible errors in new data to be identified with more certainty and adjusted if required. 
+
+Limitations: 
+The ABS state that non-sampling errors may arise from errors in reporting, recording or processing of the data (Australian Bureau of Statistics 2019). Even if there is complete coverage in terms of surveying the entire population, non sampling error can occur due to human error. Although unlikely due to the large sample size, we cannot rule out the possiblity of a Type II error which occurs when we fail to reject a null hypothesis which is in reality false due to errors in our sampling data. 
+
+The Quarterly Business Indicators Survey data excludes micro non-employing business. The Australian Bureau of Statistics states there is a substatial number of these business however,it is not expected that they would contribute significantly to the mean variation. Despite this, the exclusion of data on micro businesses is a limitation to the data scope. 
+
+Further investigation:
+
+Furhter data analyis as part of an investigation between Tasmania and the Australian Captial Territory could include taking the 'fail to reject' result of the null hypothesis and proposing a new hypothesis based on the understanding that the mean wage between the two is not statistically significant. For example, considering the mean wage it would be interesting to investigate if the variation of mean spend amounts per capita were also not statistically significant, or if there would be significant variation in that hypothesis.
+
+Another approach for further research would be testing the wage null hypothesis on differnt states and territories across Australia. Comparing data on the whole of Australia would give a more general broard understanding of salary variation and again lead to further more informed investigations regarding wages.
+
+
+The results outlined above allow us to confirm with high degree of certainty that, despite differences in individual salaries, seasonal fluctuations and occupational distribution between Tasmania and the ACT, the mean wage variance across all sectors in the sample data is not statistically significant. This is an interesting insight and just the first step in potentially a larger investigation between the two states. 
+
+
+
+# References
+
+Australian Bureau of Statistics 2019, Business Indicators, Australia, Dec 2018, cat. no. 5676.0, ABS, Canberra, viewed 30 May 2019, <https://www.abs.gov.au/AUSSTATS/abs@.nsf/Lookup/5676.0Explanatory%20Notes1Dec%202018?OpenDocument>.
+
+Baglin, J 2016, 'Module 7, Testing the Null: Data on Trial', Course Website, MATH1324, RMIT University, viewed 20 May 2019, <https://astral-theory-157510.appspot.com/secured/MATH1324_Module_07.html#hypothesis_testing_-_data_on_trial>.
+
+
