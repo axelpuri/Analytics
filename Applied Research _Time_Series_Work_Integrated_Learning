@@ -1,0 +1,1114 @@
+---
+title: "Applied Research Project"
+author: "Akhil Puri"
+date: "25/05/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(readr)
+library(forecast)
+library(expsmooth)
+library(x12)
+library(dLagM)
+library(Hmisc)
+library(AER)
+library(dynlm)
+library(TSA)
+library(car)
+library(tseries)
+library(stats)
+library(urca)
+library(fUnitRoots)
+library(FitAR)
+library(xts)
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R 
+Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
+You can embed an R code chunk like this:
+
+```{r}
+
+rdata1 <- read_table2("date  sales_revenue_incl_credit
+                                    2017-07 56,037.46
+                                    2017-08 38333.9
+                                    2017-09 48716.92
+                                    2017-10 65447.67
+                                    2017-11 134752.57
+                                    2017-12 116477.39
+                                    2018-01 78167.25
+                                    2018-02 75991.44
+                                    2018-03 42520.93
+                                    2018-04 70489.92
+                                    2018-05 121063.35
+                                    2018-06 76308.47
+                                    2018-07 118085.7
+                                    2018-08 96153.38
+                                    2018-09 82827.1
+                                    2018-10 109288.83
+                                    2018-11 145774.52
+                                    2018-12 141572.77
+                                    2019-01 123055.83
+                                    2019-02 104232.24
+                                    2019-03 435086.33
+                                    2019-04 74304.96
+                                    2019-05 117237.82
+                                    2019-06 82013.47
+                                    2019-07 99382.67
+                                    2019-08 138455.2
+                                    2019-09 97301.99
+                                    2019-10 137206.09
+                                    2019-11 109862.44
+                                    2019-12 118150.96
+                                    2020-01 140717.9
+                                    2020-02 127622.3
+                                    2020-03 134126.09")
+
+
+rdata1
+
+
+
+```
+
+
+As visible from the time series plot we have 33 data points since 2017 July for the credit as well as cash sales for William McNeils product line which 
+comprises different models of pillows . 
+
+
+```{r}
+
+
+
+rdata1 %>%
+  mutate(date = ymd(paste0(date, "-01"))) %>%
+  ggplot(aes(date, sales_revenue_incl_credit)) +
+  geom_line() +
+  scale_x_date(date_labels = "%b %Y", date_breaks = "1 month")+
+  theme_bw()+
+  scale_y_continuous(name="Monthly sales revenue", labels = scales::comma)+
+  theme(axis.text.x = element_text(angle = 90, vjust=0.5), 
+        panel.grid.minor = element_blank())
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+
+salesdata <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 4/Appplied research Project/Time series data.csv")
+
+salesdata
+
+salesdata_ts <- ts(salesdata, start=c(2017,07),end = c(2020,3),frequency=12)
+
+```
+
+
+
+```{r}
+
+Time = seq(as.Date("01-07-2017",  format = "%d-%m-%Y"), length.out = 33 , by = "month")
+y <- c(56037, 38333,  48716, 65447, 134752, 116477,  78167, 75991, 42520, 70489, 121063, 76308, 118085, 96153, 82827, 109288, 145774, 141572, 123055, 104232, 435086, 
+74304, 117237, 82013, 99382, 138455, 97301, 137206, 109862, 118150, 140717, 127622, 134126 )
+sales <- data.frame(dates, y) 
+
+library(ggplot2)
+p<- ggplot(df, aes(Time, y)) + geom_line() + scale_x_date(date_labels = "%b-%Y") +
+  ggtitle("Monthly sales and credit revenue") +
+  scale_y_continuous(name="Monthly sales revenue", labels = scales::comma) +
+geom_vline(xintercept = as.Date("01-01-2012",  format = "%d-%m-%Y"), linetype = 'dotted', color = 'blue')
+
+
+p + theme(
+plot.title = element_text(color="red", size=14, face="bold.italic",hjust = 0.5),
+axis.title.x = element_text(color="blue", size=14, face="bold"),
+)
+
+
+
+
+
+#In the timme seris plot e stands for 100,000 (100k)
+```
+
+#Descriptive look of the time series
+Trend: upward trend / change in the mean level
+Changing variance: There doesnt appear to be any changing variance leaving aside that one massive spike. 
+Seasonality: There doesnt appaear to be any repeating patterns at a set time interval as seen from the monhly labels 
+Autoregression / Moving Average : It looks like a combination of succeeding points as well as fluctation around the mean level 
+Intervention: There is a huge spike in the monthly sales data in the March of 2019 but this cannot be called an intervetion point as the mean level of the series 
+does not change 
+
+#Let us look at the correlation scatter plot 
+
+```{r}
+
+plot(y=salesdata_ts,x=zlag(salesdata_ts),ylab='Monthly sales revenue including credit', xlab='Previous months figures',main = "Correlation / scatter plot of monthly sales ",
+scipen=999)
+
+
+
+```
+
+There arent enough data points to inform us about a correaltion but there does appear to be a linear pattern forming which we can deliniate on the basis of the data available 
+
+```{r}
+#Let us now see the correlation co-efficient between the sales figures with the its values lagged by 1 year (one time period apart) 
+
+y = salesdata_ts
+x = zlag(salesdata_ts)
+index = 2:length(x)
+cor(y[index],x[index])
+
+# As coorborated by the co-efficeint of correlation , there is a significant amount of correlation between succesive values of change in thickness ovet the years 
+
+```
+
+Model Fitting 
+
+Let us now start by fitting certain determinstic models to exmaine  which is the best fit by doing residual analysis of the fitted values
+
+Deterministic Versus Stochastic Trends
+
+One of the challenges in time series analysis is that the same time series may be viewed quite dierently by dierent analysts. For example, one can foresee a trend in a 
+simulated random walk with a constant mean for all time. The perceived trend is a result of the strong positive correlation between the series values at nearby time points 
+and the increasing variance in the process as time goes by. Therefore, one can see different trends in the next simulations. This type of trend is called stochastic trend.
+
+IF we have a montly temperature series for some place in the northern hemisphere say for example England we will get a cyclical or a seasonal trend due to the Northern 
+Hemisphere’s changing inclination toward the sun. We can model this trend by , where is a deterministic function that is periodic with period
+12 and it should satisfy for all . We can assume that represent an unobserved variation around and has zero mean for all . So, this model assumes that
+Yt = Xt + μt μt
+μt = μt−12 t Xt
+μt t  is the mean function for the observed series . Because the mean function is determined beforehand and we can set the functions form of trend, the trend
+considered here is a deterministic trend. It is possible to set a linear mean function such that  μ = β0 β1t or a quadratic time trend such as μt  = β0 + β1t + β2t
+2
+
+
+```{r}
+#Linear trend model
+
+linear_model = lm(salesdata_ts~time(salesdata_ts))
+summary(linear_model)
+
+
+```
+
+Even though the intercept co-efficent is significant,  the adjusted R square value of 0.09475  , which is the percentage of the variation in  the time series / 
+the response variable (the response variable or the dependant variable here is the monthly sales data that is dependant on time which is the independant variable) 
+that is explained or captured by the linear trend model,  isnt very high . 
+
+Ideally a good fit should be 0.7<R^2<0.85
+
+A trend line is plotted over the time series 
+
+```{r}
+plot(salesdata_ts,type='o',ylab='Monthly sales Revenue ',main = "Fitted linear model to the
+Monthly sales revenue time series",  scipen=999, )
+abline(linear_model)
+```
+
+Its clearly visible that this is not a good model for the time series as this does not capture the spike in the middle despite appearing to be a good fit overall.
+
+
+```{r}
+# Let us look at the residuals of the fitted values
+
+res.linear_model = rstudent(linear_model)
+plot(y = res.linear_model, x = as.vector(time(salesdata_ts)),xlab = 'Time', ylab='Standardized Residuals',type='p',main = "Residuals of the fitted values")
+
+```
+
+What we can see is a pattern between the residuals of the fitted values. It doesnt appear to be random white noise which seems to suggest that the linear model doesnt 
+capture the variation in the data 
+
+
+```{r}
+#Lets analyse the normality of the residuals using a QQ plot 
+
+qqnorm(res.linear_model)
+qqline(res.linear_model, col = 2, lwd = 1, lty = 2)
+
+#The residuals appear more or less normal with slight deviation at the tails 
+
+```
+
+The datapoints do appear to be normally distributed apart from that one single data point which deviates massively off the tail (the sales figure for March 2019)
+
+
+```{r}
+#A Shapiro test can confirm the normality 
+
+shapiro.test(res.linear_model)
+
+ 
+```
+
+A p-value of 2.715e-11 (very negligible and close to 0) means we reject the Null hypothesis that the residuals are normally distributed
+
+```{r}
+#ACF ( auto-correlation function ) for the residuals 
+
+
+acf(res.linear_model, main= "Residuals of the linear trend model (ACF) ")
+
+
+```
+
+
+There is no serial correlation between the lags of the residuals which is good but we reject the linear model as the adjusted R square value of 0.09475 from  the 
+fitted model is really and the residuals are not normally distributed from the Shapiro Wilks test . We shall continue our search for a better model
+
+#QUADRATIC MODEL
+
+Now lets look at the Quadratic model and whether it is able to capture the mean level of the monthly sales revenues time series
+
+```{r}
+
+t = time(salesdata_ts)
+t2 = t^2
+quadratic_model = lm(salesdata_ts~ t + t2)
+summary(quadratic_model)
+
+````
+
+We can see that the adjusted R square has gone up marginally from linear model  but there are no significant co-efficients so this is not looking like a good fit either 
+but we will continue with the other routine checks 
+
+
+```{r}
+plot(ts(fitted(quadratic_model)), ylim = c(min(c(fitted(quadratic_model),
+as.vector(salesdata_ts))), max(c(fitted(quadratic_model),as.vector(salesdata_ts)))),ylab='Monthly sales Revenue ' ,
+main = "Fitted quadratic curve to the
+Monthly sales revenue time series")
+lines(as.vector(salesdata_ts),type="o" )
+
+
+```
+
+
+Again the curve does appear to capture the mean trend as well as the linear model APART from the significant spike in Marh 2019. 
+
+Lets conduct the residial analysis for the quadratic model
+
+```{r}
+
+res.quadratic_model = rstudent(quadratic_model)
+plot(y = res.quadratic_model, x = as.vector(time(salesdata_ts)),xlab = 'Year', ylab='Standardized Residuals',type='p',main = "Residuals from the Quadratic model")
+abline(h=0)
+
+
+```
+
+Again we see the same problem with the quadratic model that we saw with the linear trend model. The residuals are not randsonly dispersed , there appaears to be a trend 
+so we cannot say that the quadratic model has been abele to catch the variation in the monthly sales figures.
+
+
+#Lets look at the QQ-plot to further corroborate normality 
+```{r}
+qqnorm(res.quadratic_model)
+qqline(res.quadratic_model, col = 2, lwd = 1, lty = 2)
+
+#The residuals appaear to  nomrally distributed  for the most part with the end tail significantly deviating off the red line
+
+shapiro.test(res.quadratic_model)
+
+# The results of the Shapiro Wilks test p-value = 3.882e-11 corroborate the findings from the QQ plot that the residuals are not normally distributed 
+```
+
+Finally we can have a look at the ACF to finally confirm that there are no significant lags leading to autocorrelation of the residuals with its own lags . 
+A pure white noise in the residauals will normally have no significant lags between the error / residauls terms 1,2 or even 3 time time periods away. 
+
+
+```{r}
+acf(res.quadratic_model, main= "Residuals of the quadratic trend model (ACF) ")
+
+
+
+```
+
+
+From the residual plot of the quadratic model we can comment that although there are is no significant correlation in any of the lags , we reject the quadratic model due 
+to low R square value from the fitting the model and the Shapiro Wilks test which confirmed non-normality of the residuals . 
+
+We continue our search for better models.
+
+
+Cosine model
+
+If there is any seasonal trend in the data ( which there isnt as we have clearly delineated earlier in plot with monthly labels)  We can
+include the information on the shape of the seasonal trend in the model by assigning a
+cosine curve as the mean function : μt
+
+μt = β cos(2πf t + Φ)
+
+Here, , , and are called the amplitude, frequency, and phase of the curve. As varies, the curve oscillates within interval. Since the curve repeats itself exactly
+every time units, is called the period of the cosine wave. When we set , a cosine wave will repeat itself every 12 months. So we say that the period is 12.
+For the estimation purposes, we need to make the above cosine trend model linear in  terms of its parameters. With the following misinterpretation, we get
+
+β cos(2πf t + Φ) = β1 cos(2πf t) + β2 sin(2πf t)
+
+We are only demnstrating that the cosine model isnt an accurate model here as there appears to be no seasonal trend or shape.
+
+```{r}
+
+har = harmonic(salesdata_ts,1)
+cosine_model = lm(salesdata_ts~har)
+summary(cosine_model)
+
+
+
+```
+
+As  suspected the R-square is very low and the sin and cos co-eefiednts are not significant either yet will we will still go ahead with the other mandatory checks 
+notwithstanding.
+
+Lets go ahead and fit the csone model to our time series data
+
+```{r}
+
+plot(ts(fitted(cosine_model), freq=12,start=c(2017,7)), ylab='Montly sales revenue',type='l',
+     ylim=range(c(fitted(cosine_model),salesdata_ts)),main="Fitted cosine model to monthly 
+     sales revenue time series ", scipen=999)
+     points(salesdata_ts)
+
+
+
+```
+
+It doesnt capture the fluctuations / varaince in the data. 
+
+```{r}
+
+res.cosine_model = rstudent(cosine_model)
+plot(y = res.cosine_model, x = as.vector(time(salesdata_ts)),xlab = 'Year', ylab='Standardized Residuals',type='p',main = "Residuals from the Cosine model")
+abline(h=0)
+
+```
+
+Since the model did not capture the mean trend / variation in the data , there is a clear pattern in the residuals. 
+
+
+```{r}
+
+qqnorm(res.cosine_model)
+qqline(res.cosine_model, col = 2, lwd = 1, lty = 2)
+
+#The residuals appaear to  nomrally distributed  for the most part with the end tail significantly deviating off the red line
+
+shapiro.test(res.cosine_model)
+
+# The results of the Shapiro Wilks test p-value = 3.882e-11 corroborate the findings from the QQ plot that the residuals are not normally distributed 
+
+```
+
+The Shapiro Wilks test with a p-value = 1.744e-10 , confirms non - normality in the distribution of  the residuals 
+
+
+```{r}
+
+acf(res.cosine_model,main="Residuals of the cosine trend model (ACF)" )
+
+```
+
+Even though there is no  significant correlation in any of the lags 1 , we reject the cosine model due to low R square value from the fitting the model and the 
+Shapiro Wilks test which confirmed non-normality of the distribution within the residuals
+
+
+Autoregressive integrated moving average
+
+In statistics and econometrics, and in particular in time series analysis, an autoregressive integrated moving average (ARIMA) model is a generalization of an 
+autoregressive moving average (ARMA) model. Both of these models are fitted to time series data either to better understand the data or to predict future points in 
+the series (forecasting). ARIMA models are applied in some cases where data show evidence of non-stationarity, where an initial differencing step 
+(corresponding to the "integrated" part of the model) can be applied one or more times to eliminate the non-stationarity.[1]
+
+The AR part of ARIMA indicates that the evolving variable of interest is regressed on its own lagged (i.e., prior) values. The MA part indicates that the regression 
+error is actually a linear combination of error terms whose values occurred contemporaneously and at various times in the past.[2] The I (for "integrated") 
+indicates that the data values have been replaced with the difference between their values and the previous values (and this differencing process may have been performed
+more than once). The purpose of each of these features is to make the model fit the data as well as possible.
+
+Non-seasonal ARIMA models are generally denoted ARIMA(p,d,q) where parameters p, d, and q are non-negative integers, p is the order (number of time lags) of the 
+autoregressive model, d is the degree of differencing (the number of times the data have had past values subtracted), and q is the order of the moving-average model. 
+Seasonal ARIMA models are usually denoted ARIMA(p,d,q)(P,D,Q)m, where m refers to the number of periods in each season, and the uppercase P,D,Q refer to the autoregressive, 
+differencing, and moving average terms for the seasonal part of the ARIMA model. (https://en.wikipedia.org/wiki/Autoregressive_integrated_moving_average)
+
+#### 1.5 Exploratory Data Analysis
+
+
+```{r}
+#Plotting a time series plot of the monthly dataset
+plot(salesdata_ts, main='Time Series Plot for Monthly Sales Revenue ', ylab='Monthly Sales Revenue ', scipen=999)
+points(y=salesdata_ts,x=as.vector(time(salesdata_ts)),
+pch=as.vector(season(salesdata_ts)))
+
+findfrequency(salesdata_ts)
+```
+
+The above time series plot reveals five significant characteristics of the dataset.  
+
+•	Trend: There appears to be a slight upward trend in the plot with the mean of the series appearing to remain relatively constant over time. An argument could be made 
+that there is a increasing trend or intervention present for the month of March 2019 through to 2018. However, this deviation from mean of the series is only abrupt and 
+unsustained , additionally the time series appears to have recentred itself around the mean by April 2019.
+
+•	Variance: The plot displays no significant signs of volatility within the variance. The time period within which we are analyzing the sales figures a portrays a moderate 
+level of variation which further adds to the suggestion that there is no instability present in the variance of the series. 
+
+•	Seasonality: At a glance the above series appears to have an absence of any significant patterns or trends that could be interpreted as seasonality. Using the monthly 
+labels to take a deeper look at the series does not change this view. Most of the same months appear to record seemingly random levels of sales revenues with there being 
+no apparent trends between corresponding months. We have corroborated the absence of cyclicity / seasonality with the findfrequency function from the forecast package which 
+returns the value of 1 if no there is no apparent trend or cyclicity. 
+
+• Moving Average Component: The series contains behaviour indicative of a moving average component with the series rising and falling around the mean. This indicative of 
+oscillating behaviour centered around the mean is seen throughout the entire series.
+
+•	Autoregressive Component: The series also contains several clusters of succeeding points which suggests that there is a dependency between neighbouring observations. This 
+dependency in the time variable is indicative of autoregression and hence there seems to be significant evidence of the series containing an autoregressive component
+
+
+ACF and PACF plots
+
+A complete auto-correlation function gives us shows us how present value of the series is correlated with its lagged values. Any given time series will have components like 
+trend , seasonality , cyclicity and residuals . An ACF takes into account all of these while computing correlations 
+
+ACF has to be used in conjunction with PACF to identify the order of ARIMA models 
+
+
+```{r, echo=FALSE}
+
+sales_acf <- acf(salesdata_ts,plot = FALSE)
+par(mar=c(5,4,0,1) + 0.1)
+plot(sales_acf ,  adj=1)
+
+title( "ACF Monthly sales revenue ",line=-2)
+```
+
+The autocorrelation function is a measure of the correlation between observations of a time series that are separated by k time units (yt and yt–k).
+
+Interpretation
+Use the autocorrelation function and the partial autocorrelation functions together to identify ARIMA models. Examine the spikes at each lag to determine whether they are 
+significant. A significant spike will extend beyond the significance limits, which indicates that the correlation for that lag doesn't equal zero.
+
+The following patterns can help you specify the autoregressive and MA terms in an ARIMA model. 
+(https://support.minitab.com/en-us/minitab/19/help-and-how-to/statistical-modeling/time-series/how-to/autocorrelation/interpret-the-results/autocorrelation-function-acf/)
+
+There are no significant lags in the ACF of the series , possibly because the series isnt very long. There is no slowly decaying pattern (degradation ) of the correlations 
+which seems to suggest stationarity but we cannot be sure so we will carry out the ADF test to determine stationarity/non-stationrity. 
+
+Use the autocorrelation function and the partial autocorrelation functions together to identify ARIMA models. Examine the spikes at each lag to determine whether they are 
+significant. A significant spike will extend beyond the significance limits, which indicates that the correlation for that lag doesn't equal zero. 
+
+Interpreting the autocorrelation plot requires the data to be stationary. A stationary time series has a mean, variance, and autocorrelation function that are essentially 
+constant through time
+
+Lets look at PACF now. 
+
+PACF is a partial auto correlation which finds correlation between the lags of the residuals , so if there is any hidden information in the residuals it will reveal itself 
+in the PACF and that can be statistically significant while modelling . 
+
+```{r, echo=FALSE}
+
+sales_pacf <- pacf(salesdata_ts,plot = FALSE)
+par(mar=c(5,4,0,1) + 0.1)
+plot(sales_pacf ,  adj=0.5)
+
+title( " PACF Monthly sales revenue Time Series ",line=-2)
+        
+```
+
+The partial autocorrelation function is a measure of the correlation between observations of a time series that are separated by k time units (yt and yt–k), after adjusting 
+for the presence of all the other terms of shorter lag (yt–1, yt–2, ..., yt–k–1).
+
+Interpretation
+Use the partial autocorrelation and autocorrelation functions together to identify ARIMA models. Look for the following patterns on the partial autocorrelation function. 
+Examine the spikes at each lag to determine whether they are significance. A significant spike will extend beyond the significant limits, which indicates that the correlation 
+for that lag doesn't equal zero.
+(https://support.minitab.com/en-us/minitab/18/help-and-how-to/modeling-statistics/time-series/how-to/partial-autocorrelation/interpret-the-results/partial-autocorrelation-function-pacf/)
+Having analysed the ACf and PACF of the observed series we need to now proceed with differencing as the series is non-statioanary given the decaying (slowly degrading) 
+nature of 
+the correlations.
+
+Before we proceed with differening we need to first transform the data using Box cox tranformation . 
+
+Lets perform an ADF test to see whether the series is stationary or not
+
+```{r, echo=FALSE}
+
+#Performing ADF test on the original time series
+order = ar(diff(salesdata_ts))$order
+adfTest(salesdata_ts, lags = order, title = NULL,description = NULL)
+
+```
+
+The Augmented Dickey-Fuller test resulted in a p-value of 0.5781 suggesting that there is insignificant evidence to reject the null hypothesis of the series being 
+non-stationary.
+
+#### 1.6 Data Transformation
+
+Since there was that once massive spike in the data we need to carry out box-cox transformation before we do differencing 
+
+
+```{r, echo=FALSE}
+
+sales_ts.tfm = BoxCox.ar(salesdata_ts, method = "yule-walker")
+
+
+sales_ts.tfm$ci
+
+````
+
+We take the mid point of the confidence interval as the value of lambda to carry out the transformation 
+
+
+```{r, echo=FALSE}
+
+lambda = -0.45
+
+sales_ts.BC = (salesdata_ts^lambda-1)/lambda
+
+
+````
+
+
+Having carried out the boxcox transformation we now proceed to differencing 
+
+We carry out differencing in order to make the series statioanary and to be able to read the ACF and PACF plots in order to determine the order of AR and MA components. 
+
+## 2. Model Specification
+
+
+#### 2.1 Differencing
+
+First order Differencing
+
+```{r, echo=FALSE}
+
+#Differencing 
+
+sales_ts.BC.diff1 = diff(sales_ts.BC, differences=1)
+plot(sales_ts.BC.diff1,type='o',ylab='Monthly sales revenue ', main='1st differencing of Monthly sales revenue')
+
+findfrequency(sales_ts.BC)
+
+````
+
+Lets calcualte the ADF after 1st differencing 
+
+```{r, echo=FALSE}
+
+#ADF
+
+order = ar(diff(sales_ts.BC.diff1))$order
+adfTest(sales_ts.BC.diff1, lags = order, title = NULL,description = NULL)
+
+
+````
+
+The P value of the from the ADF test is less than the alpha value of 0.05 there is significant evidence now to reject the null hypothesis which assumes the series is non-statioanry.
+
+That is we accept the alternate hypothesis that the series is not stationary
+
+#### 2.2 AR and MA Components
+ 
+ 
+We can now go ahead to determine the order of ARIMA for our time series 
+
+
+```{r, echo=FALSE}
+
+
+acf_sales.1stdiff <- acf(sales_ts.BC.diff1,plot = FALSE)
+
+par(mar=c(5,3,1.5,1.5) + 0.1 )
+  
+plot(acf_sales.1stdiff ,  adj=0.5)
+
+title( "ACF 1st differenced Monthly Sales Revenue  ", line= 0.5)
+
+
+
+````
+
+Pattern : Significant correlations at the first or second lag, followed by correlations that are not significant.
+
+What the pattern indicates : A moving average term in the data. The number of significant correlations indicates the order of the moving average term.
+
+
+This is loking like a moving average process MA(1) and if the the PACF throws up similar symptoms in the way visual inspection of the correlations ten we will be
+able to add the autoregressive component of ARIMA model we will be fitting to these series. 
+
+At the momeent we have ARIMA(0,4,1)
+
+Now let us analyse the PACF which can help iu further corroborate our findings from the ACF. 
+
+
+
+```{r, echo=FALSE}
+
+
+pacf_sales.1stdiff <- pacf(sales_ts.BC.diff1,plot = FALSE)
+
+par(mar=c(5,3,1.5,1.5) + 0.1 )
+  
+plot(pacf_sales.1stdiff ,  adj=0.5)
+
+title( "PACF 1st differenced Monthly sales revenue ", line= 0.5)
+
+
+
+````
+
+
+Pattern  : Significant correlations at the first or second lag, followed by correlations that are not significant.
+
+Indicates: An autoregressive term in the data. The number of significant correlations indicate the order of the autoregressive term.
+
+(https://support.minitab.com/en-us/minitab/18/help-and-how-to/modeling-statistics/time-series/how-to/partial-autocorrelation/interpret-the-results/partial-autocorrelation-function-pacf/)
+
+Through visual inspection of ACF and PACF we can now specify the orders of the ARIMA model that we can fit to this series 
+
+ARIMA (2,1,1)
+
+EACF plot of 4th differencing 
+
+```{r, echo=FALSE}
+
+eacf(sales_ts.BC.diff1,ar.max = 4 , ma.max = 4)
+
+````
+
+The EACF table for an ARMA(p, q) process should theoretically have a triangular pattern of zeroes with the top-left zero occurring in the p-th row and q-th column
+(with the row and column labels both starting from 0).
+
+(http://people.stat.sc.edu/Hitchcock/stat520ch6slides.pdf)
+
+
+the other candidate models are the circles around / adjacent to the top left circle vertex which are ARIMA (1,1,0) , ARIMA (0,1,1) & ARIMA (1,1,1) 
+(this one we already got from the ACF and PACF plots)
+
+BIC TABLE OF 1st ORDER DIFFERENCING 
+
+```{r, echo=FALSE}
+
+sales_ts.diff1.BIC = armasubsets(y=sales_ts.BC.diff1,nar=4,nma=4,y.name='test',ar.method='ols')
+
+plot(sales_ts.diff1.BIC)
+
+title ("BIC table of 1st order differencing" , line= 6)
+
+````
+
+In the BIC  table the test lags refer to the AR component and the errorlags refer to the MA component. 
+
+From the table we get 
+ARIMA (1,1,3)
+ARIMA (1,1,4) 
+ARIMA (2,1,1)
+ARIMA (3,1,3) 
+ARIMA (3,1,4) 
+
+#### 2.3 Model Candidacy
+
+So the final models that we get from ACF / PACF, EACF and BIC table are 
+
+ARIMA (1,1,0) 
+ARIMA (0,1,1) 
+ARIMA (1,1,1) 
+ARIMA (1,1,3)
+ARIMA (1,1,4) 
+ARIMA (2,1,1)
+ARIMA (3,1,3) 
+ARIMA (3,1,4) 
+
+
+## 3.Model Fitting
+
+
+#### 3.1 Parameter Fitting
+
+Lets move on to parameter estimation 
+
+In parameter estimation we need to estiamte model parameters and compare different models developed for our dataset in terms of their estimation and prediction accuracy
+
+We pass the box cox tranformed/ normalised , non-differenced series in the arima function to determine the significance of the co-efficients.
+
+This is becuase we specify the order of AR, MA components ALONG WITH the order of differencing 
+
+The final model is estimated with "CSS-ML", i.e. Maximum-likelihood estimation (ML) where starting values for the optimisation are searched for via conditional sums of squares (CSS)
+ARIMA (1,1,0)
+
+
+```{r, echo=FALSE}
+
+model_110 = arima(sales_ts.BC, order = c(1,1,0), method = 'CSS-ML')
+coeftest(model_110)
+
+````
+
+The AR compoenent is significant but there are other models that we need to examine that have both AR and MA components so we proceed with the next model
+However we will be considering this model for AIC and BIC scores 
+
+ARIMA (0,1,1) 
+
+```{r, echo=FALSE}
+
+model_011 = arima(sales_ts.BC, order = c(0,1,1), method = 'CSS-ML')
+coeftest(model_011)
+
+
+````
+
+The AR compoenent is significant but there are other models that we need to examine that have both AR and MA components so we proceed with the next model
+However we will be considering this model for AIC and BIC scores 
+
+ARIMA (1,1,1) 
+
+```{r, echo=FALSE}
+
+model_111 = arima(sales_ts.BC, order = c(1,1,1), method = 'CSS-ML')
+coeftest(model_111)
+
+````
+
+The AR component has a co-efficient that is not significant so we need to try other models 
+
+
+
+ARIMA (1,1,3)
+
+```{r, echo=FALSE}
+
+model_113 = arima(sales_ts.BC, order = c(1,1,3), method = 'CSS-ML')
+coeftest(model_113)
+
+
+````
+
+None of the co-efficeints are significant so this is not a good model. This is also an indication to increase the order of the AR terms as delineated through visual inspection of the transformed and differenced ACF and PACF plots of the manthly time series data 
+
+
+ARIMA (2,1,1)
+
+```{r, echo=FALSE}
+
+model_211 = arima(sales_ts.BC, order = c(2,1,1), method = 'CSS-ML')
+coeftest(model_211)
+
+
+````
+
+Both AR1 and AR2 components have insignificant co-efficients 
+
+ARIMA(2,1,2)
+
+```{r, echo=FALSE}
+
+model_212 = arima(sales_ts.BC, order = c(2,1,2), method = 'CSS-ML')
+coeftest(model_212)
+
+
+````
+
+ARIMA (3,1,1) 
+
+```{r, echo=FALSE}
+
+model_311 = arima(sales_ts.BC, order = c(3,1,1), method = 'CSS-ML')
+coeftest(model_311)
+
+
+````
+
+ARIMA (3,1,3) 
+
+```{r, echo=FALSE}
+
+model_313 = arima(sales_ts.BC, order = c(3,1,3), method = 'CSS-ML')
+coeftest(model_313)
+
+
+````
+
+Except for AR3 all compoents have significant co-efficients. We are getting closer to finding our model
+
+ARIMA (3,1,4)
+
+```{r, echo=FALSE}
+
+model_314 = arima(sales_ts.BC, order = c(3,1,4), method = 'CSS-ML')
+coeftest(model_314)
+
+````
+  
+Since we are missing a significant co-efficient for the final lag of the order of AR , its entirely possible ARIMA (3,1,1) is underfitting the data , i.e there are less parameters in the model than are required to explain the variance in the data.  
+  
+  
+```{r, echo=FALSE}
+
+model_312 = arima(sales_ts.BC, order = c(3,1,2), method = 'CSS-ML')
+coeftest(model_312)
+
+````
+
+This is looking like a good fit as all co-efficents especially the final AR component of 3 as a double star rating in terms of significance of the co-efficeints 
+
+
+#Model Comparison 
+
+We will now use models -
+
+model_312 i.e. ARIMA(3,1,2) , model_313 i.e. ARIMA(3,1,3), model_110 i.e. ARIMA(1,1,0) and model_011 ARIMA(0,1,1) for AIC and BIC scores since these are models that had the most significant co-efficients 
+
+First lets source the sort score function
+
+
+```{r, echo=FALSE}
+
+sort.score <- function(x, score = c("bic", "aic")){
+if (score == "aic"){
+x[with(x, order(AIC)),]
+} else if (score == "bic") {
+x[with(x, order(BIC)),]
+} else {
+warning('score = "x" only accepts valid arguments ("aic","bic")')
+}
+}
+
+````
+
+
+
+```{r, echo=FALSE}
+
+sort.score(AIC(model_312,model_313,model_110,model_011), score = "aic")
+
+sort.score(BIC(model_312,model_313,model_110,model_011), score = "bic")
+
+````
+
+We will now test all the models for underfitting as well as overfitting to check if there are models with higher or lower order AR, MA components with more significant co-efficients 
+
+
+#Overfitting and Underfitting Test 
+
+ARIMA(1,1,0) To ensure that ARIMA(1,1,0) is adequately complex and is not underfitting or overfitting the time series, models ARIMA(2,1,0) performance will be analyzed 
+
+```{r, echo=FALSE}
+
+model_210 = arima(sales_ts.BC, order = c(2,1,0), method = 'CSS-ML')
+coeftest(model_210)
+
+````
+
+The AR2 component has an insignificant co-efficient. 
+
+ARIMA(0,1,1). To ensure that ARIMA(0,1,1) is adequately complex and is not underfitting or overfitting the time series, models ARIMA(0,1,2) & ARIMA(1,1,2) performance will be analyzed 
+
+```{r, echo=FALSE}
+
+model_012 = arima(sales_ts.BC, order = c(0,1,2), method = 'CSS-ML')
+coeftest(model_012)
+
+model_112 = arima(sales_ts.BC, order = c(1,1,2), method = 'CSS-ML')
+coeftest(model_112)
+
+````
+
+model_012's MA2 component has insignificant co-efficients 
+
+model_112's co-efficients are insignificant 
+
+
+ARIMA(3,1,2)-  To ensure that ARIMA(3,1,2) is adequately complex and is not underfitting or overfitting the time series models,
+
+ARIMA(3,1,3) , ARIMA(2,1,2) , ARIMA(4,1,2) & ARIMA(4,1,3) performance will be analyzed 
+
+```{r, echo=FALSE}
+
+model_313 = arima(sales_ts.BC, order = c(3,1,3), method = 'CSS-ML')
+coeftest(model_313)
+
+model_212 = arima(sales_ts.BC, order = c(2,1,2), method = 'CSS-ML')
+coeftest(model_212)
+
+model_412 = arima(sales_ts.BC, order = c(4,1,2), method = 'CSS-ML')
+coeftest(model_412)
+
+model_413 = arima(sales_ts.BC, order = c(4,1,3), method = 'CSS-ML')
+coeftest(model_413)
+
+
+````
+
+All the models that are being tested with respect to underfitting and overfitting for model ARIMA(3,1,2) seem to have major insignificant co-efficients for their AR and MA components . This we will be sticking with ARIMA(3,1,2)
+
+
+Finally we check  underfitting and overfitting for model_313 i.e. ARIMA(3,1,3) 
+
+ARIMA (4,1,4), ARIMA (3,1,4) and no more since the BIC table didnt seem to suggest higher orders 
+
+```{r, echo=FALSE}
+
+model_414 = arima(sales_ts.BC, order = c(4,1,4), method = 'CSS-ML')
+coeftest(model_414)
+
+model_314 = arima(sales_ts.BC, order = c(3,1,4), method = 'CSS-ML')
+coeftest(model_314)
+
+````
+
+There are too many insignificant co-efficients for various AR and MA components thus we will be sticking with the orginal model ARIMA (3,1,3)
+
+We now proceed with the models with the lowest BIC scores for residual analysis.
+
+
+## Model Diagnostic
+
+
+#### 4.1 Approach
+
+
+Before implementation of the selected model it is imperative to verify that the residuals are behaving like white noise. To verify the residuals are displaying this behaviour, 3 properties inherent with white noise must be observed. First the residual must inherently display stationarity with a zero mean and stable variance. This property shall be explored through the implementation of a standardised residual plot. The second property that must be exhibited is a normal distribution of the residuals. This shall be examined through a histogram, QQ plot and Shapiro-Wilk test. The final property to be verified in the residual analysis is that of independence. Independence shall be confirmed through the use of an ACF and Ljung-Box plot. 
+
+Residual Analysis shall only be performed as required and not on all models in the candidate set. The most suitable model as determined by section 2 and 3 of this report shall undergo residual analysis with the next best model being selected should a model fail to satisfy the residual analysis. This process will repeat with the next most suitable model being selected for residual analysis until a model is able to confirm that its residuals follow the 3 desirable properties associated with white noise.
+
+### 4.2 Residual Annalysis
+
+Sourcing the residual analysis function 
+
+```{r, echo=FALSE}
+
+residual.analysis <- function(model, std = TRUE,start = 2, class = c("ARIMA","GARCH","ARMA-GARCH")[1]){
+  library(TSA)
+  library(FitAR)
+  if (class == "ARIMA"){
+    if (std == TRUE){
+      res.model = rstandard(model)
+    }else{
+      res.model = residuals(model)
+    }
+  }else if (class == "GARCH"){
+    res.model = model$residuals[start:model$n.used]
+  }else if (class == "ARMA-GARCH"){
+      res.model = model@fit$residuals
+  }else {
+    stop("The argument 'class' must be either 'ARIMA' or 'GARCH' ")
+  }
+  par(mfrow=c(3,2))
+  plot(res.model,type='o',ylab='Standardised residuals', main="Time series plot of standardised residuals")
+  abline(h=0)
+  hist(res.model,main="Histogram of standardised residuals")
+  acf(res.model,main="ACF of standardised residuals")
+  pacf(res.model,main="PACF of standardised residuals")
+  qqnorm(res.model,main="QQ plot of standardised residuals")
+  qqline(res.model, col = 2)
+  print(shapiro.test(res.model))
+  k=0
+  LBQPlot(res.model, lag.max = 15, StartLag = k + 1, k = 0, SquaredQ = FALSE)
+}
+
+````
+
+
+
+#### ARIMA(0,1,1)
+
+
+```{r, echo=FALSE}
+
+residual.analysis(model = model_011)
+par(mfrow=c(1,1))
+
+````
+
+There are no obvious trend and relative constant variance in the residuals observed from the time series plot of the residuals. Normality of the residuals can-not be perceived from the histogram and appears to be a little right skewed if anything (3 vs-2) . There are no significant lags in the ACF or PACF indicating no serial correlation between the residuals. The QQ plot seems to suggest that the residuals are normally distibuted with slight deviation of the tails . We corroborate this assertion with the Shapiro Wilks test that carries the null hypothesis that the data are normally distributed. With a p value of 0.2011 we fail to reject the null hypothesis hence we can say that the residuals are indeeed normally distributed. 
+
+Ljung-box test: The p-value for all the lags is above the the signifance level of 0.05 . The null hypothesis of the Box Ljung Test, H0, is that our model does not show lack of fit (or in simple terms—the model is just fine). The alternate hypothesis, is just that the model does show a lack of fit. Thus we fail to reject the null hypothesis leading to the conclusion that there is no lack of fit and that the model is just fine. 
+
+
+#### ARIMA(1,1,0)
+
+```{r, echo=FALSE}
+
+residual.analysis(model = model_110)
+par(mfrow=c(1,1))
+
+````
+
+
+There are no obvious trend and relative constant variance in the residuals observed from the time series plot of the residuals. Normality of the residuals can-not be perceived from the histogram  even it does appear to be normally distributed with no apparent skewness . There are no significant lags in the ACF however in te  PACF the 4th lag is significant indicating some serial correlation between the residuals aeven after accounting for correlation for the lags in between. The QQ plot seems to suggest that the residuals are normally distibuted with slight deviation of the tails . We corroborate this assertion with the Shapiro Wilks test that carries the null hypothesis that the data are normally distributed. With a p value of 0.4249 we fail to reject the null hypothesis hence we can say that the residuals are indeeed normally distributed. 
+
+Ljung-box test: The p-value for all the lags is above the the signifance level of 0.05 . The null hypothesis of the Box Ljung Test, H0, is that our model does not show lack of fit (or in simple terms—the model is just fine). The alternate hypothesis, is just that the model does show a lack of fit. Thus we fail to reject the null hypothesis leading to the conclusion that there is no lack of fit and that the model is just fine. 
+
+
+#### ARIMA(3,1,2)
+
+```{r, echo=FALSE}
+
+residual.analysis(model = model_312)
+par(mfrow=c(1,1))
+
+````
+
+There are no obvious trend and relative constant variance in the residuals observed from the time series plot of the residuals. Normality of the residuals can be perceived from the histogram with the shape quite symmetric  . There is however one  significant lag in the ACF which means there is autocorrelation between the series and a version of the same series 9 time periods away . The PACF on the other hand has no significant lags . The QQ plot seems to suggest that the residuals are normally distibuted with slight deviation of the tails . We corroborate this assertion with the Shapiro Wilks test that carries the null hypothesis that the data are normally distributed. With a p value of 0.672 we fail to reject the null hypothesis hence we can say that the residuals are indeeed normally distributed. 
+
+Ljung-box test: The p-value for all the lags is above the the signifance level of 0.05 . The null hypothesis of the Box Ljung Test, H0, is that our model does not show lack of fit (or in simple terms—the model is just fine). The alternate hypothesis, is just that the model does show a lack of fit. Thus we fail to reject the null hypothesis leading to the conclusion that there is no lack of fit and that the model is just fine. 
+
+After conducting residual analysis we come to the conclusion that ARIMA (0,1,1) is the best model as it meets all the conditions for normality of the residuals. 
+
+Lets corroborate our finding with auto arima
+```{r, echo=FALSE}
+
+auto.arima(sales_ts.BC)
+
+````
+
+In keeping with the Principle of Parsimony or Occam's Razor which is the problem-solving principle that "entities should not be multiplied without necessity" (https://en.wikipedia.org/wiki/Occam%27s_razor) we choose ARIMA(0,1,1) to forecast future 6 months sales figures for William Mc Neils product line of pillows
+
+
+## 5. Forecasting
+
+
+#### 5.1 Forecasting Model
+
+
+The ARIMA(0,0,1) model proved to be the strongest and most appropriate model for forecasting the 10 months sales figures for WAMcNeils product line of pillows. 
+
+```{r}
+
+MA1.sales=arima(salesdata_ts,order=c(0,1,1),  #Fit MA(1) Model
+# create the design matrix of the covariate for prediction
+xreg=data.frame (constant=seq(salesdata_ts)))
+n=length(salesdata_ts)
+n.ahead=8 #Forecast 5 steps ahead
+newxreg=data.frame(constant=(n+1):(n+n.ahead))
+# Plot the Forecast
+plot(MA1.sales,n.ahead=n.ahead,newxreg=newxreg,
+           ylab='Monthly sales revenue',xlab='Time', main ="Monthly sales revenue 8 months ahead 
+           forecast with 95% prediction intervals ", scipen=999)
+
+```
+
+
+The above plot represents the eight-month forecast where the dotted line indicates the 95% confidence region . 
+
+The 8 month forecast seems to suggest that the sales will continue to grow without any major dips for the next 8 months. 
+This ofcourse doesnt account for the current climate of reduced business activity due to covid19 which has disrupted supply chains thereby affecting sales. 
+IF the economy recovers in the next 3/4 months that could augur well for the demand side but that will have to be matched with a proportionate increase in supply , 
+unless capacity hasnt been affected due to supply side shortages. 
+
+
