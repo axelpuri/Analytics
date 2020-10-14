@@ -1,0 +1,1479 @@
+1  Introduction
+The world population is increasing at a dramatic rate and there are various factors that contribute to this positive growth. 
+Although it took two hundred thousand years of human history to reach 1 billion, it only took 200 years to reach more than 7 billion. 
+In this report we analyse the world population dataset and try to determine the factors that affect it.
+
+2  Dataset description
+The dataset was sourced from https://www.kaggle.com/imdevskp/world-population-19602018.
+
+The dataset consists of 235 rows and 11 columns.
+
+The variables included in this dataset are a.Country b.Population c.Yearly Change % d.Net Change e.Density f.Land Area (KmÂ²) g.World Share % h.Urban Pop % i.Median Age j.Fertility Rate k.Migrants (net)
+
+Our target feature is Population
+
+3  Statement of goals and objectives
+We have chosen this dataset because it contains 10 continuous variables all of which can be useful in predecting the target variable i.e Population Our goal is to conduct data 
+exploration through visual storytelling and analysis about the data We will create a Multinomial classification problem i.e we will create 5 levels ranging from very low to 
+very high for the target fearture i.e population Then we will discretise the descriptive features i.e the data into categorical ordinal variables and then carry out 
+exploratory analysis through datga visualsiations by ploting 1 variable , 2 variable and 3 variable plots which help unravel the story behind the data. 
+Our final goals will be to carry out feature ranking of the one hot encoded variables and report a summary on the performance of the feature ranking methods. 
+Finally we will use the 10 best descriptive variables/ features to fit various classifiers which we will fine tune via 10 fold cross validation training . 
+Then we will test on the fine tuned classifiers / algorithm on unseen data and report on the best performing algorithm / classifer and long with hyper tuned parameters
+
+4  Setup
+# Importing modules
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import patsy
+import warnings
+import sklearn
+import matplotlib.pyplot as plt
+###
+warnings.filterwarnings('ignore')
+###
+%matplotlib inline 
+%config InlineBackend.figure_format = 'retina'
+plt.style.use("ggplot")
+pd.options.display.float_format = '{:20,.2f}'.format
+#Importing the data
+
+pop_data = pd.read_csv("C:/Users/axelp/Documents/RMIT/Semester 4/Machine Learning/Project/S3774583_csv.csv", sep = ',', header = None, 
+                       names= ['Country','Yearly_Change_%','Net_Change','Density_P/Km²','Land_Area_Km²','Migrants_net',
+                               'Fertility_Rate','Median_Age','Urban_Pop_%','World_Share_%','Population2020'])
+
+pop_data.head()
+Country	Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%	Population2020
+0	China	0.39	5540090	153	9388211	-348,399.00	1.70	38.00	61.00	18.47	1439323776
+1	India	0.99	13586631	464	2973190	-532,687.00	2.20	28.00	35.00	17.70	1380004385
+2	United States	0.59	1937734	36	9147420	954,806.00	1.80	38.00	83.00	4.25	331002651
+3	Indonesia	1.07	2898047	151	1811570	-98,955.00	2.30	30.00	56.00	3.51	273523615
+4	Pakistan	2.00	4327022	287	770880	-233,379.00	3.60	23.00	35.00	2.83	220892340
+# Lets first confirm that the feature types match the descriptions outlined in the comma separated file.
+
+print(f"Shape of the dataset is {pop_data.shape} \n")
+print(f"Data types are below where 'object' indicates a string type: ")
+print(pop_data.dtypes)
+Shape of the dataset is (235, 11) 
+
+Data types are below where 'object' indicates a string type: 
+Country             object
+Yearly_Change_%    float64
+Net_Change           int64
+Density_P/Km²        int64
+Land_Area_Km²        int64
+Migrants_net       float64
+Fertility_Rate     float64
+Median_Age         float64
+Urban_Pop_%        float64
+World_Share_%      float64
+Population2020       int64
+dtype: object
+#Checking for missing values 
+
+print(f"\nNumber of missing values for each feature:")
+print(pop_data.isnull().sum())
+Number of missing values for each feature:
+Country             0
+Yearly_Change_%    29
+Net_Change          0
+Density_P/Km²       0
+Land_Area_Km²       0
+Migrants_net       34
+Fertility_Rate     33
+Median_Age         33
+Urban_Pop_%        13
+World_Share_%       0
+Population2020      0
+dtype: int64
+5  Summary Statistics
+We look at the summary statistics for the whole dataset but as is visible from the various descriptive statistics there are loads of NANs which means there is 
+missing data that we will have to impute using the one of the central measures of tendencies
+
+pop_data.describe(include='all')
+Country	Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%	Population2020
+count	235	206.00	235.00	235.00	235.00	201.00	202.00	202.00	222.00	235.00	235.00
+unique	235	nan	nan	nan	nan	nan	nan	nan	nan	nan	nan
+top	Liechtenstein	nan	nan	nan	nan	nan	nan	nan	nan	nan	nan
+freq	1	nan	nan	nan	nan	nan	nan	nan	nan	nan	nan
+mean	NaN	1.33	346,087.83	475.77	553,591.84	6.28	2.71	30.53	59.23	0.43	33,169,356.34
+std	NaN	0.93	1,128,260.33	2,331.29	1,687,795.99	123,291.89	1.30	9.17	24.23	1.73	135,137,435.86
+min	NaN	0.00	-383,840.00	0.00	0.00	-653,249.00	1.10	15.00	0.00	0.00	801.00
+25%	NaN	0.59	424.00	37.00	2,545.00	-10,047.00	1.72	22.00	43.00	0.01	398,876.00
+50%	NaN	1.14	39,170.00	95.00	77,240.00	-852.00	2.30	30.00	60.50	0.07	5,459,642.00
+75%	NaN	1.96	249,660.00	239.50	403,820.00	9,741.00	3.60	39.00	79.00	0.27	20,577,053.00
+max	NaN	3.84	13,586,631.00	26,337.00	16,376,870.00	954,806.00	7.00	48.00	100.00	18.47	1,439,323,776.00
+#checking for null values in the columns where the object type is float64
+
+pop_data.isnull().sum()
+Country             0
+Yearly_Change_%    29
+Net_Change          0
+Density_P/Km²       0
+Land_Area_Km²       0
+Migrants_net       34
+Fertility_Rate     33
+Median_Age         33
+Urban_Pop_%        13
+World_Share_%       0
+Population2020      0
+dtype: int64
+#Replacing the missing values in Columnn Yearly Change % ,Migrants (net), Fertility Rate,Median Age, Urban Pop % with the median of the non-null values 
+
+pop_data['Yearly_Change_%'].fillna(pop_data['Yearly_Change_%'].median(), inplace=True)
+
+pop_data['Migrants_net'].fillna(pop_data['Migrants_net'].median(), inplace=True)
+
+pop_data['Fertility_Rate'].fillna(pop_data['Fertility_Rate'].median(), inplace=True)
+
+pop_data['Median_Age'].fillna(pop_data['Median_Age'].median(), inplace=True)
+
+pop_data['Urban_Pop_%'].fillna(pop_data['Urban_Pop_%'].median(), inplace=True)
+
+pop_data.isnull().sum()
+
+pop_data
+Country	Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%	Population2020
+0	China	0.39	5540090	153	9388211	-348,399.00	1.70	38.00	61.00	18.47	1439323776
+1	India	0.99	13586631	464	2973190	-532,687.00	2.20	28.00	35.00	17.70	1380004385
+2	United States	0.59	1937734	36	9147420	954,806.00	1.80	38.00	83.00	4.25	331002651
+3	Indonesia	1.07	2898047	151	1811570	-98,955.00	2.30	30.00	56.00	3.51	273523615
+4	Pakistan	2.00	4327022	287	770880	-233,379.00	3.60	23.00	35.00	2.83	220892340
+...	...	...	...	...	...	...	...	...	...	...	...
+230	Montserrat	0.06	3	50	100	-852.00	2.30	30.00	10.00	0.00	4992
+231	Falkland Islands	3.05	103	0	12170	-852.00	2.30	30.00	66.00	0.00	3480
+232	Niue	0.68	11	6	260	-852.00	2.30	30.00	46.00	0.00	1626
+233	Tokelau	1.27	17	136	10	-852.00	2.30	30.00	0.00	0.00	1357
+234	Holy See	0.25	2	2003	0	-852.00	2.30	30.00	60.50	0.00	801
+235 rows × 11 columns
+
+6  SPLITTING THE DATASET INTO DATA AND TARGET
+#Our first task before we carry out any data preprocessing step for modelling purposes , is to split the dataset into data
+#and target. This is done with the purpose of the carrying out integer coding and OHE on the descriptive features and target
+#encoding on the variable that needs to be predicted (Population)
+
+data = pop_data.drop(columns = 'Population2020').values
+
+target = pop_data['Population2020'].values
+#Converting numpy array to a dataframe
+
+df_pop_country = pd.DataFrame(data)
+
+df_pop_country.columns = ['Country','Yearly_Change_%','Net_Change','Density_P/Km²','Land_Area_Km²','Migrants_net',
+                               'Fertility_Rate','Median_Age','Urban_Pop_%','World_Share_%']
+
+df_pop_country.head()
+
+df_pop = df_pop_country.copy()
+#Doppping the country column as this represents an ID like column with a unique value for each row 
+
+df_pop = df_pop.drop(columns=['Country'])
+
+df_pop
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	0.39	5540090	153	9388211	-348,399.00	1.70	38.00	61.00	18.47
+1	0.99	13586631	464	2973190	-532,687.00	2.20	28.00	35.00	17.70
+2	0.59	1937734	36	9147420	954,806.00	1.80	38.00	83.00	4.25
+3	1.07	2898047	151	1811570	-98,955.00	2.30	30.00	56.00	3.51
+4	2.00	4327022	287	770880	-233,379.00	3.60	23.00	35.00	2.83
+...	...	...	...	...	...	...	...	...	...
+230	0.06	3	50	100	-852.00	2.30	30.00	10.00	0.00
+231	3.05	103	0	12170	-852.00	2.30	30.00	66.00	0.00
+232	0.68	11	6	260	-852.00	2.30	30.00	46.00	0.00
+233	1.27	17	136	10	-852.00	2.30	30.00	0.00	0.00
+234	0.25	2	2003	0	-852.00	2.30	30.00	60.50	0.00
+235 rows × 9 columns
+
+7  Performing discretization
+#Carrying out Discretizing/equal width binning of Column Yearly Change %
+
+df_pop_cat = df_pop.copy()
+
+df_pop_cat['Yearly_Change_%'] = pd.qcut(df_pop_cat['Yearly_Change_%'], q=3, 
+                                     labels=['low', 'medium', 'high',])
+df_pop_cat['Net_Change'].value_counts()
+
+df_pop_cat
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	5540090	153	9388211	-348,399.00	1.70	38.00	61.00	18.47
+1	medium	13586631	464	2973190	-532,687.00	2.20	28.00	35.00	17.70
+2	low	1937734	36	9147420	954,806.00	1.80	38.00	83.00	4.25
+3	medium	2898047	151	1811570	-98,955.00	2.30	30.00	56.00	3.51
+4	high	4327022	287	770880	-233,379.00	3.60	23.00	35.00	2.83
+...	...	...	...	...	...	...	...	...	...
+230	low	3	50	100	-852.00	2.30	30.00	10.00	0.00
+231	high	103	0	12170	-852.00	2.30	30.00	66.00	0.00
+232	low	11	6	260	-852.00	2.30	30.00	46.00	0.00
+233	medium	17	136	10	-852.00	2.30	30.00	0.00	0.00
+234	low	2	2003	0	-852.00	2.30	30.00	60.50	0.00
+235 rows × 9 columns
+
+#Converting columns with large values and variance , leaving aside yearly change and world share which we will be normalising 
+#using #min-max scaling 
+
+df_pop_cat1 = df_pop_cat.copy()
+
+df_pop_cat1['Net_Change'] = pd.qcut(df_pop_cat1['Net_Change'], q=4, 
+                                     labels=['negative or very low', 'low', 'medium', 'high',])
+df_pop_cat1['Net_Change'].value_counts()
+
+df_pop_cat1
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	high	153	9388211	-348,399.00	1.70	38.00	61.00	18.47
+1	medium	high	464	2973190	-532,687.00	2.20	28.00	35.00	17.70
+2	low	high	36	9147420	954,806.00	1.80	38.00	83.00	4.25
+3	medium	high	151	1811570	-98,955.00	2.30	30.00	56.00	3.51
+4	high	high	287	770880	-233,379.00	3.60	23.00	35.00	2.83
+...	...	...	...	...	...	...	...	...	...
+230	low	negative or very low	50	100	-852.00	2.30	30.00	10.00	0.00
+231	high	negative or very low	0	12170	-852.00	2.30	30.00	66.00	0.00
+232	low	negative or very low	6	260	-852.00	2.30	30.00	46.00	0.00
+233	medium	negative or very low	136	10	-852.00	2.30	30.00	0.00	0.00
+234	low	negative or very low	2003	0	-852.00	2.30	30.00	60.50	0.00
+235 rows × 9 columns
+
+#Carrying out Discretizing/equal width binning of Column Density (P/KmÂ²)
+df_pop_cat2 = df_pop_cat1.copy()
+
+df_pop_cat2['Density_P/Km²'] = pd.qcut(df_pop_cat2['Density_P/Km²'], q=5, 
+                                     labels=['very low', 'low', 'medium', 'high','very high'])
+df_pop_cat2['Density_P/Km²'].value_counts()
+
+df_pop_cat2
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	high	high	9388211	-348,399.00	1.70	38.00	61.00	18.47
+1	medium	high	very high	2973190	-532,687.00	2.20	28.00	35.00	17.70
+2	low	high	low	9147420	954,806.00	1.80	38.00	83.00	4.25
+3	medium	high	high	1811570	-98,955.00	2.30	30.00	56.00	3.51
+4	high	high	high	770880	-233,379.00	3.60	23.00	35.00	2.83
+...	...	...	...	...	...	...	...	...	...
+230	low	negative or very low	low	100	-852.00	2.30	30.00	10.00	0.00
+231	high	negative or very low	very low	12170	-852.00	2.30	30.00	66.00	0.00
+232	low	negative or very low	very low	260	-852.00	2.30	30.00	46.00	0.00
+233	medium	negative or very low	high	10	-852.00	2.30	30.00	0.00	0.00
+234	low	negative or very low	very high	0	-852.00	2.30	30.00	60.50	0.00
+235 rows × 9 columns
+
+#Carrying out Discretizing/equal width binning of Column Land Area KmÂ²)
+df_pop_cat3 = df_pop_cat2.copy()
+
+df_pop_cat3['Land_Area_Km²'] = pd.qcut(df_pop_cat3['Land_Area_Km²'], q=5, 
+                                     labels=['very low', 'low', 'medium', 'high','very high'])
+df_pop_cat3['Land_Area_Km²'].value_counts()
+df_pop_cat3
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	high	high	very high	-348,399.00	1.70	38.00	61.00	18.47
+1	medium	high	very high	very high	-532,687.00	2.20	28.00	35.00	17.70
+2	low	high	low	very high	954,806.00	1.80	38.00	83.00	4.25
+3	medium	high	high	very high	-98,955.00	2.30	30.00	56.00	3.51
+4	high	high	high	very high	-233,379.00	3.60	23.00	35.00	2.83
+...	...	...	...	...	...	...	...	...	...
+230	low	negative or very low	low	very low	-852.00	2.30	30.00	10.00	0.00
+231	high	negative or very low	very low	low	-852.00	2.30	30.00	66.00	0.00
+232	low	negative or very low	very low	very low	-852.00	2.30	30.00	46.00	0.00
+233	medium	negative or very low	high	very low	-852.00	2.30	30.00	0.00	0.00
+234	low	negative or very low	very high	very low	-852.00	2.30	30.00	60.50	0.00
+235 rows × 9 columns
+
+#Carrying out Discretizing/equal width binning of Column Migrants (net)
+df_pop_cat4 = df_pop_cat3.copy()
+
+df_pop_cat4['Migrants_net'] = pd.qcut(df_pop_cat4['Migrants_net'], q=5, 
+                                     labels=['high outflow', 'low outflow', 'either positive or negative', 'low inflow','high inflow'])
+df_pop_cat4['Migrants_net'].value_counts()
+df_pop_cat4
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	high	high	very high	high outflow	1.70	38.00	61.00	18.47
+1	medium	high	very high	very high	high outflow	2.20	28.00	35.00	17.70
+2	low	high	low	very high	high inflow	1.80	38.00	83.00	4.25
+3	medium	high	high	very high	high outflow	2.30	30.00	56.00	3.51
+4	high	high	high	very high	high outflow	3.60	23.00	35.00	2.83
+...	...	...	...	...	...	...	...	...	...
+230	low	negative or very low	low	very low	either positive or negative	2.30	30.00	10.00	0.00
+231	high	negative or very low	very low	low	either positive or negative	2.30	30.00	66.00	0.00
+232	low	negative or very low	very low	very low	either positive or negative	2.30	30.00	46.00	0.00
+233	medium	negative or very low	high	very low	either positive or negative	2.30	30.00	0.00	0.00
+234	low	negative or very low	very high	very low	either positive or negative	2.30	30.00	60.50	0.00
+235 rows × 9 columns
+
+#Carrying out Discretizing/equal width binning of Column Fertility Rate
+df_pop_cat5 = df_pop_cat4.copy()
+
+df_pop_cat5['Fertility_Rate'] = pd.qcut(df_pop_cat5['Fertility_Rate'], q=3, 
+                                     labels=['low', 'medium', 'high'])
+df_pop_cat5['Fertility_Rate'].value_counts()
+df_pop_cat5
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	high	high	very high	high outflow	low	38.00	61.00	18.47
+1	medium	high	very high	very high	high outflow	medium	28.00	35.00	17.70
+2	low	high	low	very high	high inflow	low	38.00	83.00	4.25
+3	medium	high	high	very high	high outflow	medium	30.00	56.00	3.51
+4	high	high	high	very high	high outflow	high	23.00	35.00	2.83
+...	...	...	...	...	...	...	...	...	...
+230	low	negative or very low	low	very low	either positive or negative	medium	30.00	10.00	0.00
+231	high	negative or very low	very low	low	either positive or negative	medium	30.00	66.00	0.00
+232	low	negative or very low	very low	very low	either positive or negative	medium	30.00	46.00	0.00
+233	medium	negative or very low	high	very low	either positive or negative	medium	30.00	0.00	0.00
+234	low	negative or very low	very high	very low	either positive or negative	medium	30.00	60.50	0.00
+235 rows × 9 columns
+
+#Carrying out Discretizing/equal width binning of Column Median Age
+df_pop_cat6 = df_pop_cat5.copy()
+
+df_pop_cat6['Median_Age'] = pd.qcut(df_pop_cat6['Median_Age'], q=3, 
+                                     labels=['low', 'medium', 'high'])
+df_pop_cat6['Median_Age'].value_counts()
+df_pop_cat6
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	high	high	very high	high outflow	low	high	61.00	18.47
+1	medium	high	very high	very high	high outflow	medium	medium	35.00	17.70
+2	low	high	low	very high	high inflow	low	high	83.00	4.25
+3	medium	high	high	very high	high outflow	medium	medium	56.00	3.51
+4	high	high	high	very high	high outflow	high	low	35.00	2.83
+...	...	...	...	...	...	...	...	...	...
+230	low	negative or very low	low	very low	either positive or negative	medium	medium	10.00	0.00
+231	high	negative or very low	very low	low	either positive or negative	medium	medium	66.00	0.00
+232	low	negative or very low	very low	very low	either positive or negative	medium	medium	46.00	0.00
+233	medium	negative or very low	high	very low	either positive or negative	medium	medium	0.00	0.00
+234	low	negative or very low	very high	very low	either positive or negative	medium	medium	60.50	0.00
+235 rows × 9 columns
+
+#Carrying out Discretizing/equal width binning of Column urban population 
+
+pop_data_cat7 = df_pop_cat6.copy()
+
+pop_data_cat7['Urban_Pop_%'] = pd.qcut(pop_data_cat7['Urban_Pop_%'], q=3, 
+                                     labels=['low', 'medium', 'high'])
+pop_data_cat7['Urban_Pop_%'].value_counts()
+pop_data_cat7
+
+pop_data_cat7.head(15)
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	high	high	very high	high outflow	low	high	medium	18.47
+1	medium	high	very high	very high	high outflow	medium	medium	low	17.70
+2	low	high	low	very high	high inflow	low	high	high	4.25
+3	medium	high	high	very high	high outflow	medium	medium	medium	3.51
+4	high	high	high	very high	high outflow	high	low	low	2.83
+5	low	high	very low	very high	high inflow	low	medium	high	2.73
+6	high	high	high	very high	high outflow	high	low	low	2.64
+7	medium	high	very high	medium	high outflow	medium	medium	low	2.11
+8	low	medium	very low	very high	high inflow	low	high	high	1.87
+9	medium	high	low	very high	high outflow	medium	medium	high	1.65
+10	medium	negative or very low	very high	high	high inflow	low	high	high	1.62
+11	high	high	medium	very high	high inflow	high	low	low	1.47
+12	medium	high	very high	high	high outflow	high	low	low	1.41
+13	high	high	medium	very high	high outflow	high	low	low	1.31
+14	medium	high	very high	high	high outflow	medium	medium	low	1.25
+#Carrying out Discretizing/equal width binning of Column urban population 
+
+pop_data_cat8 = pop_data_cat7.copy()
+
+pop_data_cat8['World_Share_%'] = pd.qcut(pop_data_cat8['World_Share_%'], q=3, 
+                                     labels=['low', 'medium', 'high'])
+pop_data_cat8['World_Share_%'].value_counts()
+pop_data_cat8
+Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%
+0	low	high	high	very high	high outflow	low	high	medium	high
+1	medium	high	very high	very high	high outflow	medium	medium	low	high
+2	low	high	low	very high	high inflow	low	high	high	high
+3	medium	high	high	very high	high outflow	medium	medium	medium	high
+4	high	high	high	very high	high outflow	high	low	low	high
+...	...	...	...	...	...	...	...	...	...
+230	low	negative or very low	low	very low	either positive or negative	medium	medium	low	low
+231	high	negative or very low	very low	low	either positive or negative	medium	medium	medium	low
+232	low	negative or very low	very low	very low	either positive or negative	medium	medium	low	low
+233	medium	negative or very low	high	very low	either positive or negative	medium	medium	low	low
+234	low	negative or very low	very high	very low	either positive or negative	medium	medium	medium	low
+235 rows × 9 columns
+
+Data = pop_data_cat8.copy()
+8  Data exploration and Visualisations
+Visualisations can be used to better understand the population dataset.
+
+Before diving into the visualisations, we inspect the correlation of the target variable (population) with the descriptive features / independant variables
+
+# lets take the first 100 countries to carry out a correlation between the other variables and the population 
+
+pop_100=pop_data.head( n=100)
+
+pop_100.head(5)
+Country	Yearly_Change_%	Net_Change	Density_P/Km²	Land_Area_Km²	Migrants_net	Fertility_Rate	Median_Age	Urban_Pop_%	World_Share_%	Population2020
+0	China	0.39	5540090	153	9388211	-348,399.00	1.70	38.00	61.00	18.47	1439323776
+1	India	0.99	13586631	464	2973190	-532,687.00	2.20	28.00	35.00	17.70	1380004385
+2	United States	0.59	1937734	36	9147420	954,806.00	1.80	38.00	83.00	4.25	331002651
+3	Indonesia	1.07	2898047	151	1811570	-98,955.00	2.30	30.00	56.00	3.51	273523615
+4	Pakistan	2.00	4327022	287	770880	-233,379.00	3.60	23.00	35.00	2.83	220892340
+#To determine correlation
+
+corr=pop_100.corr()["Population2020"]
+corr[np.argsort(corr, axis=0)[::-1]]
+Population2020                    1.00
+World_Share_%                     1.00
+Net_Change                        0.84
+Land_Area_Km²                     0.41
+Density_P/Km²                     0.17
+Median_Age                        0.07
+Urban_Pop_%                      -0.04
+Fertility_Rate                   -0.12
+Yearly_Change_%                  -0.17
+Migrants_net                     -0.28
+Name: Population2020, dtype: float64
+#Now lets create a correlation plot of all the other continous variables with population for the top 100 countries 
+
+num_feat=pop_100.columns[pop_100.dtypes!=object]
+num_feat=num_feat[1:-1] 
+labels = []
+values = []
+for col in num_feat:
+    labels.append(col)
+    values.append(np.corrcoef(pop_100[col].values, pop_100.Population2020.values)[0,1])
+    
+ind = np.arange(len(labels))
+width = 0.7
+fig, ax = plt.subplots(figsize=(8,8))
+rects = ax.barh(ind, np.array(values), color='green')
+ax.set_yticks(ind+((width)/2.))
+ax.set_yticklabels(labels, rotation='horizontal')
+ax.set_xlabel("Correlation coefficient")
+ax.set_title("Correlation Coefficients w.r.t Population");
+
+As is visible from the visual above world share % is perfectly postively correlated (+1) with population,
+but obvious - higher the population of the country the greater its share will be in the over world population .
+
+Net change in population from the previous year is also highly correlated with population (+0.84)
+
+Land Area in square kilmeters has a positive medium correlation with population (+0.41)
+
+The correlations for the rest are either insignificant or negative.
+
+Now that we have built an understanding about how the variables are correlated with population we can derive more meaningful and insightful visuals.
+
+We can also do Seaborn heatmap to show the correlations between the variables
+
+0 - Country (or dependency) 1- Yearly Change %
+2- Net Change
+3- Density (P/KmÂ²) 4- Land Area (KmÂ²) 5- Migrants (net)
+6- Fertility Rate
+7- Median Age
+8- Urban Pop %
+9- World Share %
+Population (2020)
+
+f = plt.figure(figsize=(13, 9))
+plt.matshow(pop_data.corr(), fignum=f.number)
+plt.xticks(range(pop_data.shape[1]), pop_data.columns, fontsize=14, rotation=45)
+plt.yticks(range(pop_data.shape[1]), pop_data.columns, fontsize=14)
+cb = plt.colorbar()
+cb.ax.tick_params(labelsize=12);
+
+8.1  1. Univariate visualisations
+8.1.1  Histogram
+Lets create a histogram for the top 100 countries to understand the distribution of their respective population
+
+sns.distplot(pop_100['Population2020'], color="r", kde=False)
+plt.title("Distribution of Population")
+plt.ylabel("Frequency/no.of occurences")
+plt.xlabel("Population");
+
+plt.gcf().set_size_inches((12, 7))    
+plt.show()
+
+The above seaborn distribution plot aka histogram shows us that the distribution is right tailed with outliers such as China and India making the distribution heavily 
+positiviely right skewed / positively skewed
+
+We empirically tested this on the whole populaiton distribution of 235 countries with the mean 33 million(approx) significantly higher than the median 5 million approx
+
+8.1.2  BarPlot
+We will be doing a bar plot for the top 15 countries and their respective populations
+
+pop_15=pop_data.head( n=15)
+
+
+pop_15.plot.bar('Country', 'Density_P/Km²',color="b", figsize=(14,8))
+ax. set(xlabel=None, ylabel="Density_P/Km²")
+plt.rcParams["font.weight"] = "bold"
+plt.rcParams["axes.labelweight"] = "bold"
+
+
+plt.xlabel("Countries")
+plt.ylabel("Density_P/Km²")
+
+plt.show()
+
+We can see that Bangladesh has the highest density of people per square kilometer approx 1200 people per square , followed by India (500 people per SQ KM) and then the 
+Phillpines and then Japan
+
+8.1.3  Pie-Chart
+Now we use the dataset "df_pop_cat5" with categorical variables to determine the proportion of each class/level of fertility rate with respect to the world at first and 
+then for the top 50 coutries to see how the fertility rate has an impact on the population of the more polulated countries
+
+Now we use the dataset "df_pop_cat5" with categorical variables to determine the proportion of each category/class of fertility rate with respect to the population.
+
+#pie chart to determine effect of fertility rate on population 
+
+
+#where df_pop_cat5 includes the categorical variables previously introduced
+
+plt.figure(figsize = (8,8))
+df_pop_cat5['Fertility_Rate'].value_counts().plot(kind='pie',shadow=True, explode=(0, 0, 0.15), startangle=90,autopct='%1.1f%%')
+plt.title('Effect of fertility rate on population')
+plt.show()
+
+As it can be seen, as all countries are included we get a fertility rate of approximately 33% for each category of fertility rate. To better understand the impact 
+fertility rate has on the population we choose only the first 100 elements of the dataset (i.e top 100 countries by population)
+
+pop_cat_50=df_pop_cat5.head(50)
+
+plt.figure(figsize = (8,8))
+pop_cat_50['Fertility_Rate'].value_counts().plot(kind='pie',shadow=True, explode=(0, 0, 0.15), startangle=90,autopct='%1.1f%%')
+plt.title('Effect of fertility rate on population')
+plt.show()
+
+As visible from the visual above when we take only the top 100 populated countries the proportion of countries with high fertility goes up from 33.1% to 34.0%.
+
+This would lead us to believe that fertility rate and population are moderately positively correlated but if we go back to the correlation plot shown at the beginning 
+there is a negative correlation between the two. This means we need to dig even deeper
+
+The above visual also shows that the proportion of coutries with low fertility has also gone up from 35.6% to 36.0%
+
+This goes to show that there is a weak correlation between fertility rates and population because if that wasnt the case then we would have seen the proportion of countries 
+with high fertility go up significantly higher than it did and drop in the proportion of countries with low fertility rates with a narrowing down to countries with higher 
+populations
+
+8.2  2. Bivariate visualisations
+Bivariate visualisations can help us understand how variables interact with one another.
+
+8.2.1  Scatter plot
+#Lets look at a scatter plot of density and population 
+
+pop_25 = pop_data.head(25)
+
+pop_25.plot.scatter(x='Population2020', y='Density_P/Km²')
+
+
+plt.title("Density_P/Km² VS Population2020 ")
+plt.gcf().set_size_inches((12, 7))    
+plt.show()
+
+The scatter plot shows that there is some amount of correlation between density and population , but it is not very high otherwise we would see a 45 degree diagnal pattern 
+of the data points. This is due to countries like China and India that have the highest population but not very high desnsity compared to other countries with lower population 
+but high density e.g Bangladesh
+
+8.2.2  Boxplot
+A boxplot is used to graphically depict groups and so its used to understand the relationship between two variables. We will be analysing the relationship between median age 
+of the population with Urban % of the population
+
+pop_40 = pop_data.head(n=40)
+pop_40['Median_Age'].corr(pop_40['Urban_Pop_%'])
+0.6942089147036483
+#creating the boxplot
+
+pop_40 = pop_data.head(n=40)
+
+sns.boxplot( x=pop_40["Median_Age"], y=pop_40["Urban_Pop_%"] )
+
+plt.title("Urban_Pop_% VS Median_Age")
+plt.gcf().set_size_inches(12, 7)    
+plt.show()
+
+In the above boxplot we see can that as the median age of a country increases so does the % of Urban population
+
+Now lets look at the data set as a whole instead of the top 40 countries
+
+8.2.3  Stacked bar plot
+The stacked bar chart extends the standard bar chart from looking at numeric values across one categorical variable to two. Each bar in a standard bar chart is divided into 
+a number of sub-bars stacked end to end, each one corresponding to a level of the second categorical variable.
+
+df2 = pop_data_cat8.groupby(['Land_Area_Km²', 'Migrants_net'])['Land_Area_Km²'].count().unstack('Migrants_net').fillna(0)
+df2[['high outflow', 'low outflow', 'either positive or negative', 'low inflow','high inflow']].plot(kind='bar', stacked=True)
+
+plt.title("Urban_Pop_% VS Median_Age")
+plt.gcf().set_size_inches((15, 10))    
+plt.show()
+
+This is a very interesting plot that gives us some valuable insights into how net migration is correlated with Land area
+
+Countires with low land mass see virtually no migration away from the country , all migration is either 1. NOR positive or negative 2. low inflow OR 3. High inlflow e.g 
+Hong Kong , Singapore
+
+Countries whose land mass is around the average landmass of the all the countries in the world have either a low outflow or low inflow e.g countries of Europe , 
+basically dependant on weather and job opportunities
+
+Countries that have high land mass e.g China , India see huge migration away from their countries seeking better quality of life abroad to countries like the US or Australia 
+(which again have high land mass) which have huge inflow . Bur on an average for countries with higher land mass have a slightly higher proportion of countries that have an 
+outflow compared to an inflow
+
+9  3. Trivariate visualisations
+Now we move onto visualisations that can incorporate 3 variables and detemine the relationship between the 3
+
+9.0.1  FACET GRID SCATTER PLOT
+#To determine the relationship between Migrants, Fertility rate and yearly population change. 
+
+sns.lmplot(x='Fertility_Rate', y='Migrants_net', hue='Yearly_Change_%', 
+           data=df_pop_cat.loc[df_pop_cat['Yearly_Change_%'].isin(['high', 'medium', 'low'])], 
+           fit_reg=False)
+
+plt.title("Urban_Pop_% VS Median_Age")
+plt.gcf().set_size_inches((15, 10))    
+plt.show()
+
+#Correlation between fertility rate and net migration 
+pop_data['Fertility_Rate'].corr(pop_data['Migrants_net'])
+-0.1091343672313315
+#Correlation between fertility rate and Yeraly Change %
+pop_data['Fertility_Rate'].corr(pop_data['Yearly_Change_%'])
+0.7547592233371341
+There is a negative correlation between the fertility rate of a country and it net migration All the countries with high fertility rate like Nigeria , Tanzania and 
+Mali have a net outflow of migration i.e more people leaving the country than coming in . The third variable here is the yearly change % in populaiton from one year 
+to the other which mostly 'high' for these countries. This kind of makes sense which is why these countries have a high fertility rate
+
+9.0.2  Boxplots
+A boxplot is a standardized way of displaying the distribution of data based on a five number summary (“minimum”, first quartile (Q1), median, third quartile (Q3), 
+and “maximum”). It can tell you about your outliers and what their values are
+
+boxplot = df_pop_cat3.boxplot(column=['Urban_Pop_%', 'Median_Age'],by='Land_Area_Km²',return_type='axes')
+plt.title("Median Age")
+plt.gcf().set_size_inches((15, 10))    
+plt.show()
+
+The above boxplot is Urban population % and Median Age grouped by Land Area in squre kilometer The main takeaway from this 3 way boxplot is that for countries with low 
+land area have a very small interquartile range with 50% of the median ages lying in the (IQR) lots of outliers lying in the range outside Q1-1.5XIQR , Q3+1.5XIQR . 
+The rest of the box plots look fairly normal in the way of distribution both for Ubran population % as well as median age grouped by land area per sq KM
+
+9.0.3  Barplot
+A bar chart or bar graph is a chart or graph that presents categorical data with rectangular bars with heights or lengths proportional to the values that they represent. 
+The bars can be plotted vertically or horizontally. A vertical bar chart is sometimes called a column chart.
+
+import seaborn as sns
+
+sns.barplot(x='Density_P/Km²', y='Urban_Pop_%', hue='Migrants_net', data=df_pop_cat5, saturation=0.8)
+
+plt.title("BARPLOT - 2 categorical (Density__KM^2 , Migrants_net ) vs Continuous (Urban_Pop_%)")
+plt.gcf().set_size_inches((20, 12))    
+plt.show()
+
+Next we come to the bar plot for the 2 categorical vs one continous variable Density__KM^2 , Migrants_net vs Continuous (UrbanPop%) The main takeaway here is that for 
+countries where the density is low, % of urban population is the maximum when net migration is high inflow of people. We a see a smilar trend accorss the varioous levels 
+of density right up very high. This makes sense as people would migrate to countries where the % of urban population is high or the influx of migrants to a nation is only 
+to urban areas.
+
+10  ONE HOT ENCODING OF ORDINAL VARIABLES
+Having completed the visaulation part lets return to preparing the data for modelling that inludes feature ranking and perforance , hyper paramter tuning and cross validation 
+using stratification and even model evaluation .
+
+We had earlier (before the visualiation section ) successfully carried out discretization of the data using equal width binning We now will carry out one hot encoding for 
+the ordinal variables since there is a natural ordering in place e.g verylow, low etc Note- Integer encoding is carried out for the ordinal categorical variables when we want 
+to implemeent a scale where the higher level is twice as good as the level below .
+
+In order to avoid that we will stick to one hot encoding
+
+# get the list of categorical descriptive features
+categorical_cols = Data.columns[Data.dtypes==object].tolist()
+
+# if a nominal feature has only 2 levels:
+# encode it as a single binary variable
+
+
+for col in categorical_cols:
+    n = len(Data[col].unique())
+    if n == 2:
+        Data[col] = pd.get_dummies(Data[col], drop_first=True)
+
+# for categorical features with >2 levels: use one-hot-encoding
+
+Data = pd.get_dummies(Data)
+
+Data    
+Yearly_Change_%_low	Yearly_Change_%_medium	Yearly_Change_%_high	Net_Change_negative or very low	Net_Change_low	Net_Change_medium	Net_Change_high	Density_P/Km²_very low	
+Density_P/Km²_low	Density_P/Km²_medium	...	Fertility_Rate_high	Median_Age_low	Median_Age_medium	Median_Age_high	Urban_Pop_%_low	Urban_Pop_%_medium	Urban_Pop_%_high	
+World_Share_%_low	World_Share_%_medium	World_Share_%_high
+0	1	0	0	0	0	0	1	0	0	0	...	0	0	0	1	0	1	0	0	0	1
+1	0	1	0	0	0	0	1	0	0	0	...	0	0	1	0	1	0	0	0	0	1
+2	1	0	0	0	0	0	1	0	1	0	...	0	0	0	1	0	0	1	0	0	1
+3	0	1	0	0	0	0	1	0	0	0	...	0	0	1	0	0	1	0	0	0	1
+4	0	0	1	0	0	0	1	0	0	0	...	1	1	0	0	1	0	0	0	0	1
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+230	1	0	0	1	0	0	0	0	1	0	...	0	0	1	0	1	0	0	1	0	0
+231	0	0	1	1	0	0	0	1	0	0	...	0	0	1	0	0	1	0	1	0	0
+232	1	0	0	1	0	0	0	1	0	0	...	0	0	1	0	1	0	0	1	0	0
+233	0	1	0	1	0	0	0	0	0	0	...	0	0	1	0	1	0	0	1	0	0
+234	1	0	0	1	0	0	0	0	0	0	...	0	0	1	0	0	1	0	1	0	0
+235 rows × 34 columns
+
+#Creating a copy of the daata before carrying out scaling 
+Data_df = Data.copy()
+Once all categorical descriptive features are encoded, all features in this transformed dataset will be numerical. It is always a good idea to scale these numerical 
+descriptive features before fitting any models, as scaling is mandatory for some important class of models such as nearest neighbors, SVMs, and deep learning.
+
+from sklearn import preprocessing
+
+Data = preprocessing.MinMaxScaler().fit_transform(Data_df)
+
+Data
+
+#Our dataframe is now a numpy array and it is ready for modelling in scikit learn
+array([[1., 0., 0., ..., 0., 0., 1.],
+       [0., 1., 0., ..., 0., 0., 1.],
+       [1., 0., 0., ..., 0., 0., 1.],
+       ...,
+       [1., 0., 0., ..., 1., 0., 0.],
+       [0., 1., 0., ..., 1., 0., 0.],
+       [1., 0., 0., ..., 1., 0., 0.]])
+11  Target feature encoding
+Now we will encode the target feature which is population and convert it to an ordinal scale Since our target feature is a numpy array we will first convert it to a panda so that we can convert it from continuous to categorical ordinal (very low to very high) in order to carry out the label encoding (0-4)
+
+target = pop_data['Population2020'].values
+
+
+
+target = pd.DataFrame(target)
+
+target.columns = ['Population2020']
+
+target
+Population2020
+0	1439323776
+1	1380004385
+2	331002651
+3	273523615
+4	220892340
+...	...
+230	4992
+231	3480
+232	1626
+233	1357
+234	801
+235 rows × 1 columns
+
+We now carry out integer encoding on the target feature But before we can carry out integer encoding we need to carry out discretization in order to convert population which is a continuous variable into a categorical ordinal whihc we will then encode using integer coding
+
+target_cat = target.copy()
+
+target_cat['Population2020'] = pd.qcut(target_cat['Population2020'],q=5, 
+                                     labels=['very low', 'low', 'medium', 'high', 'very high'])
+
+target_cat['Population2020'].value_counts()
+
+target_cat
+Population2020
+0	very high
+1	very high
+2	very high
+3	very high
+4	very high
+...	...
+230	very low
+231	very low
+232	very low
+233	very low
+234	very low
+235 rows × 1 columns
+
+np.array(target)
+target[0:10]
+Population2020
+0	1439323776
+1	1380004385
+2	331002651
+3	273523615
+4	220892340
+5	212559417
+6	206139589
+7	164689383
+8	145934462
+9	128932753
+Now that we have converted the target feature (population) from a continous variable to an ordinal scale with 5 levels we can now carry out target feature encoding
+
+First, let's count how many instances each label has in the target feature in the population dataset.
+
+target = target_cat['Population2020'].values
+
+
+
+np.unique(target, return_counts=True)
+(array(['high', 'low', 'medium', 'very high', 'very low'], dtype=object),
+ array([47, 47, 47, 47, 47], dtype=int64))
+As expected, high', 'low', 'medium', 'very high', 'very low' have 47 observations respectively. Next, let's encode these from 0 to 4 using LabelEncoder from the sklearn preprocessing module.
+
+target[1:5]
+[very high, very high, very high, very high]
+Categories (5, object): [very low < low < medium < high < very high]
+t=pd.Series(target)
+class_feature = t.replace({"very high":4, "high":3, "medium":2 , "low":1, "very low":0 })
+np.array(class_feature)
+target = class_feature
+from sklearn import preprocessing
+
+le = preprocessing.LabelEncoder()
+le_fit = le.fit(target)
+target_encoded_le = le_fit.transform(target)
+Let's check how the encoding was done. Here, you need to be careful with respect to NumPy vs. Pandas variables. The return value of label encoding is a NumPy array, 
+so we now need to use the np.unique method; because value_counts method belongs to the Pandas module and it will not work with a NumPy object.
+
+import numpy as np
+
+print("Target Type:", type(target))
+
+print("Counts Using NumPy:")
+print(np.unique(target_encoded_le, return_counts = True))
+
+print("Counts Using Pandas:")
+print(pd.Series(target_encoded_le).value_counts())
+
+#Converting the panda dataframe back to numpy
+
+target = target_encoded_le
+
+target
+Target Type: <class 'pandas.core.series.Series'>
+Counts Using NumPy:
+(array([0, 1, 2, 3, 4], dtype=int64), array([47, 47, 47, 47, 47], dtype=int64))
+Counts Using Pandas:
+4    47
+3    47
+2    47
+1    47
+0    47
+dtype: int64
+array([4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+       4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+       4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+       3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+       3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+       2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+       2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int64)
+12  Feature Selection & Ranking
+12.1  Performance with Full Set of Features
+import warnings
+warnings.filterwarnings("ignore")
+from sklearn.model_selection import cross_val_score, RepeatedStratifiedKFold
+import sklearn.metrics as metrics
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import preprocessing
+from sklearn import feature_selection as fs
+from sklearn.neighbors import KNeighborsClassifier
+#As wrapper, we use the 1-nearest neighbor classifier.
+
+from sklearn.neighbors import KNeighborsClassifier
+
+clf = KNeighborsClassifier(n_neighbors=1)
+First, we would like to assess performance using all the features in the dataset. For assessment, we shall use stratified 5-fold cross-validation with 3 repetitions. 
+We set the random state to 999 so that our results can be replicated and verified later on exactly as they are.
+
+cv_method = RepeatedStratifiedKFold(n_splits=10, 
+                                     n_repeats=3,
+                                     random_state=999)
+scoring_metric = 'accuracy'
+#Let's perform the cross-validation using the cross_val_score function.
+cv_results_full = cross_val_score(estimator=clf,
+                             X=Data,
+                             y=target, 
+                             cv=cv_method, 
+                             scoring=scoring_metric)
+cv_results_full
+array([0.75      , 0.66666667, 0.70833333, 0.70833333, 0.5       ,
+       0.60869565, 0.60869565, 0.60869565, 0.69565217, 0.65217391,
+       0.5       , 0.625     , 0.66666667, 0.5       , 0.625     ,
+       0.7826087 , 0.60869565, 0.69565217, 0.56521739, 0.52173913,
+       0.625     , 0.70833333, 0.625     , 0.70833333, 0.625     ,
+       0.65217391, 0.56521739, 0.69565217, 0.65217391, 0.65217391])
+cv_results_full.mean().round(3)
+0.637
+#Let's now select the best 10 features in the dataset using different methods.
+
+
+num_features = 10
+12.2  Feature Selection Using F-Score
+The F-Score method is a filter feature selection method that looks at the relationship between each descriptive feature and the target feature using the F-distribution.
+
+fs_fit_fscore = fs.SelectKBest(fs.f_classif, k=num_features)
+fs_fit_fscore.fit_transform(Data, target)
+fs_indices_fscore = np.argsort(np.nan_to_num(fs_fit_fscore.scores_))[::-1][0:num_features]
+fs_indices_fscore
+array([31, 33, 12, 32, 19,  6, 16,  4, 13,  5], dtype=int64)
+Let's see what these 10 best features are using the data dataframe
+
+best_features_fscore = Data_df.columns[fs_indices_fscore].values
+best_features_fscore
+array(['World_Share_%_low', 'World_Share_%_high',
+       'Land_Area_Km²_very low', 'World_Share_%_medium',
+       'Migrants_net_either positive or negative', 'Net_Change_high',
+       'Land_Area_Km²_very high', 'Net_Change_low', 'Land_Area_Km²_low',
+       'Net_Change_medium'], dtype=object)
+Based on the F-Scores, we observe that, out of the top 5 features, the most important feature is "World Share %_low" and the least important feature is
+"'Land Area (KmÂ²)_low'".
+
+The F-Score importances of these features are given below.
+
+feature_importances_fscore = fs_fit_fscore.scores_[fs_indices_fscore]
+feature_importances_fscore
+array([371.22807018, 216.83137255, 144.91832669, 102.12323944,
+        85.21629213,  76.97747748,  26.89700997,  26.35955056,
+        24.8452188 ,  21.41644385])
+import altair as alt
+
+def plot_imp(best_features, scores, method_name, color):
+    
+    df = pd.DataFrame({'features': best_features, 
+                       'importances': scores})
+    
+    chart = alt.Chart(df, 
+                      width=500, 
+                      title=method_name + ' Feature Importances'
+                     ).mark_bar(opacity=0.75, 
+                                color=color).encode(
+        alt.X('features', title='Feature', sort=None, axis=alt.AxisConfig(labelAngle=45)),
+        alt.Y('importances', title='Importance')
+    )
+    
+    return chart
+plot_imp(best_features_fscore, feature_importances_fscore, 'F-Score', 'red')
+#We can select those 10 features from the set of descriptive features Data using slicing as shown below.
+Data[:, fs_indices_fscore].shape
+(235, 10)
+#Let's now assess performance of this feature selection method using cross validation with the 1-nearest neighbor classifier.
+cv_results_fscore = cross_val_score(estimator=clf,
+                             X=Data[:, fs_indices_fscore],
+                             y=target, 
+                             cv=cv_method, 
+                             scoring=scoring_metric)
+cv_results_fscore.mean().round(3)
+0.617
+12.3  Feature Selection Using Mutual Information
+The mutual information method is a filter feature selection method that looks at the relationship between each descriptive feature and the target feature 
+using the concept of entropy.
+
+The code below returns the indices of the 10 features that have the highest mutual information value. As in the F-score method, the wrapper is not used in any way when 
+selecting features using the mutual information method.
+
+fs_fit_mutual_info = fs.SelectKBest(fs.mutual_info_classif, k=num_features)
+fs_fit_mutual_info.fit_transform(Data, target)
+fs_indices_mutual_info = np.argsort(fs_fit_mutual_info.scores_)[::-1][0:num_features]
+best_features_mutual_info = Data_df.columns[fs_indices_mutual_info].values
+best_features_mutual_info
+array(['World_Share_%_low', 'World_Share_%_high', 'World_Share_%_medium',
+       'Land_Area_Km²_very low', 'Net_Change_high',
+       'Migrants_net_either positive or negative', 'Net_Change_low',
+       'Migrants_net_high inflow', 'Net_Change_medium',
+       'Land_Area_Km²_very high'], dtype=object)
+feature_importances_mutual_info = fs_fit_mutual_info.scores_[fs_indices_mutual_info]
+feature_importances_mutual_info
+array([0.60979972, 0.46914265, 0.43039656, 0.31862826, 0.31267568,
+       0.26302222, 0.16241225, 0.14734549, 0.13867813, 0.12296028])
+plot_imp(best_features_mutual_info, feature_importances_mutual_info, 'Mutual Information', 'blue')
+cv_results_mutual_info = cross_val_score(estimator=clf,
+                             X=Data[:, fs_indices_mutual_info],
+                             y=target, 
+                             cv=cv_method, 
+                             scoring=scoring_metric)
+cv_results_mutual_info.mean().round(3)
+0.596
+12.4  Feature Selection Using Random Forest Importance
+#Let's have a look at the most important features as selected by Random Forest Importance (RFI) in the full dataset. 
+#This is for a quick ranking of the most relevant  features to gain some insight into the problem at hand. 
+#During the hyperparameter tuning phase, we will include RFI as part of the pipeline and we will search over 
+#4, 7, and the full set of 9  features to determine which number of features works best with each classifier.
+
+from sklearn.ensemble import RandomForestClassifier
+
+num_features = 10
+model_rfi = RandomForestClassifier(n_estimators=100)
+model_rfi.fit(Data, target)
+fs_indices_rfi = np.argsort(model_rfi.feature_importances_)[::-1][0:num_features]
+
+best_features_rfi = Data_df.columns[fs_indices_rfi].values
+best_features_rfi
+array(['World_Share_%_low', 'World_Share_%_high',
+       'Land_Area_Km²_very low', 'World_Share_%_medium',
+       'Migrants_net_either positive or negative', 'Net_Change_high',
+       'Land_Area_Km²_very high', 'Net_Change_low', 'Land_Area_Km²_low',
+       'Median_Age_medium'], dtype=object)
+feature_importances_rfi = model_rfi.feature_importances_[fs_indices_rfi]
+feature_importances_rfi
+array([0.10675716, 0.08477582, 0.06561964, 0.06522843, 0.05237324,
+       0.04766236, 0.03100343, 0.03036231, 0.0297029 , 0.02910417])
+%config InlineBackend.figure_format = 'retina'
+
+import altair as alt
+alt.renderers.enable('html')
+alt.renderers.enable('notebook') 
+
+def plot_imp(best_features, scores, method_name, color):
+    
+    df = pd.DataFrame({'features': best_features, 
+                       'importances': scores})
+    
+    chart = alt.Chart(df, 
+                      width=500, 
+                      title=method_name + ' Feature Importances'
+                     ).mark_bar(opacity=0.85, 
+                                color=color).encode(
+        alt.X('features', title='Feature', sort=None, axis=alt.AxisConfig(labelAngle=45)),
+        alt.Y('importances', title='Importance')
+    )
+    
+    return chart
+plot_imp(best_features_rfi, feature_importances_rfi, 'Random Forest', 'blue')
+
+cv_results_rfi = cross_val_score(estimator=clf,
+                             X=Data[:, fs_indices_rfi],
+                             y=target, 
+                             cv=cv_method, 
+                             scoring=scoring_metric)
+cv_results_rfi.mean().round(3)
+0.65
+12.5  Feature Selection Using SPSA
+SPSA is a new wrapper-based feature selection method that uses binary stochastic approximation. Let's define a SpFtSel object with our feature selection problem with 
+'accuracy' as our performance metric.
+
+from SpFtSel import SpFtSel
+
+sp_engine = SpFtSel(Data, target, clf, 'accuracy')
+np.random.seed(999)
+sp_output = sp_engine.run(num_features, run_mode='short').results
+spFtSel-INFO: Algorithm run mode: short
+spFtSel-INFO: Wrapper: KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski',
+                     metric_params=None, n_jobs=None, n_neighbors=1, p=2,
+                     weights='uniform')
+spFtSel-INFO: Scoring metric: accuracy
+spFtSel-INFO: Number of observations: 235
+spFtSel-INFO: Number of features available: 34
+spFtSel-INFO: Number of features to select: 10
+spFtSel-INFO: iter_no: 0, num_ft: 10, value: 0.515, st_dev: 0.079, best: 0.515 @ iter_no 0
+spFtSel-INFO: iter_no: 5, num_ft: 10, value: 0.566, st_dev: 0.064, best: 0.66 @ iter_no 2
+spFtSel-INFO: iter_no: 10, num_ft: 10, value: 0.66, st_dev: 0.075, best: 0.668 @ iter_no 7
+spFtSel-INFO: iter_no: 15, num_ft: 10, value: 0.66, st_dev: 0.062, best: 0.689 @ iter_no 11
+spFtSel-INFO: iter_no: 20, num_ft: 10, value: 0.685, st_dev: 0.064, best: 0.689 @ iter_no 11
+spFtSel-INFO: iter_no: 25, num_ft: 10, value: 0.685, st_dev: 0.064, best: 0.689 @ iter_no 11
+spFtSel-INFO: iter_no: 30, num_ft: 10, value: 0.702, st_dev: 0.027, best: 0.702 @ iter_no 30
+spFtSel-INFO: iter_no: 35, num_ft: 10, value: 0.702, st_dev: 0.027, best: 0.702 @ iter_no 30
+spFtSel-INFO: iter_no: 40, num_ft: 10, value: 0.685, st_dev: 0.051, best: 0.702 @ iter_no 30
+spFtSel-INFO: iter_no: 45, num_ft: 10, value: 0.651, st_dev: 0.037, best: 0.702 @ iter_no 30
+spFtSel-INFO: iter_no: 50, num_ft: 10, value: 0.66, st_dev: 0.06, best: 0.702 @ iter_no 30
+spFtSel-INFO: iter_no: 55, num_ft: 10, value: 0.681, st_dev: 0.07, best: 0.702 @ iter_no 30
+spFtSel-INFO: iter_no: 60, num_ft: 10, value: 0.685, st_dev: 0.059, best: 0.702 @ iter_no 30
+spFtSel-INFO: spFtSel completed in 0.22 minutes.
+spFtSel-INFO: Best value = 0.702,  Total iterations: 60
+Let's get the indices of the best features.
+
+fs_indices_spsa = sp_output.get('features')
+fs_indices_spsa
+array([32,  5, 33, 25, 12, 18, 16, 23,  2, 24], dtype=int64)
+Let's have a look at the top 10 features selected by SPSA.
+
+best_features_spsa = Data_df.columns[fs_indices_spsa].values
+best_features_spsa
+array(['World_Share_%_medium', 'Net_Change_medium', 'World_Share_%_high',
+       'Median_Age_low', 'Land_Area_Km²_very low',
+       'Migrants_net_low outflow', 'Land_Area_Km²_very high',
+       'Fertility_Rate_medium', 'Yearly_Change_%_high',
+       'Fertility_Rate_high'], dtype=object)
+Lets look at the feature importance
+
+feature_importances_spsa = sp_output.get('importance')
+feature_importances_spsa
+array([0.30392542, 0.21889108, 0.200555  , 0.18423105, 0.18249818,
+       0.17928319, 0.12431135, 0.12199011, 0.12172316, 0.11176467])
+plot_imp(best_features_spsa, feature_importances_spsa, 'SPSA', 'brown')
+
+Finally, let's evaluate the performance of the SPSA feature selection method.
+
+cv_results_spsa = cross_val_score(estimator=clf,
+                             X=Data[:, fs_indices_spsa],
+                             y=target, 
+                             cv=cv_method, 
+                             scoring=scoring_metric)
+cv_results_spsa.mean().round(3)
+0.666
+12.6  Performance Comparison Using Paired T-Tests
+For performance assessment, we used repeated cross-validation. However, cross-validation is a random process and we need statistical tests in order to determine 
+if any difference between the performance of any two feature selection methods is statistically significant; or if it is within the sample variation and the difference 
+is statistically insignificant.
+
+Since we fixed the random state to be same for all cross-validation procedures, all feature selection methods were fitted and then tested on exactly the same data partitions.
+This indicates that our experiments were actually paired. Conducting experiments in a paired fashion reduces the variability significantly compared to conducting experiments 
+in an independent fashion.
+
+Let's now conduct paired t-tests to see which differences between full set of features, filter methods, and SPSA are statistically significant. Let's first remind ourselves 
+the performances.
+
+print('Full Set of Features:', cv_results_full.mean().round(3))
+print('F-Score:', cv_results_fscore.mean().round(3))
+print('Mutual Information:', cv_results_mutual_info.mean().round(3))
+print('RFI:', cv_results_rfi.mean().round(3))
+print('SPSA:', cv_results_spsa.mean().round(3)) 
+Full Set of Features: 0.637
+F-Score: 0.617
+Mutual Information: 0.596
+RFI: 0.65
+SPSA: 0.666
+For a paired t-test in Python, we use the stats.ttest_rel function inside the scipy module and look at the p-values. At a 95% significance level, if the p-value is smaller than 0.05, we conclude that the difference is statistically significant.
+
+from scipy import stats
+print(stats.ttest_rel(cv_results_spsa, cv_results_fscore).pvalue.round(3))
+print(stats.ttest_rel(cv_results_spsa, cv_results_mutual_info).pvalue.round(3))
+print(stats.ttest_rel(cv_results_spsa, cv_results_rfi).pvalue.round(3))
+0.035
+0.003
+0.444
+For SPSA vs. all the other three feature selection methods, we observe a p-value of >0.05 , which indicates SPSA is statically not better than F-score, mutual information, 
+and RFI methods.
+
+stats.ttest_rel(cv_results_spsa, cv_results_full).pvalue.round(3)
+0.094
+For SPSA vs. full set of features, we observe a p-value above 0.05, indicating that the difference is not statically significant. Thus, SPSA with 5 features performs 
+at similar levels as the full set of features, at least for the 1-nearest neighbor classifier.
+
+In this project, we have used all the data to train the feature selection methods and then tested them again on the entire dataset using cross-validation due to the 
+smallness of the dataset to work with. Next, we can assess the performance of these features on the test data, again using cross-validation.
+
+13  HYPER PARAMETER TUNING AND PERFORMANCE EVALUATION
+14  Splitting the data set into train and test sets
+#We split the dataset into 4 components D_train, D_test, t_train, t_test
+#We will use the data and target training sets to carry out feature selection and model fitting and we use the data and target 
+#test sets to carry out evaluation 
+
+from sklearn.model_selection import train_test_split
+
+D_train, D_test, t_train, t_test = train_test_split(Data, 
+                                                    target, 
+                                                    test_size=0.3, 
+                                                    random_state=999)
+#Checking the shape of the 4 sets 
+print(D_train.shape)
+print(D_test.shape)
+print(t_train.shape)
+print(t_test.shape)
+(164, 34)
+(71, 34)
+(164,)
+(71,)
+# from this point forward, we will only work with the selected features using the SPSA feature selection and ranking method
+#as SPSA gave us the best performance score for the feature selection 
+
+D_Train_fs = D_train[:, fs_indices_spsa]
+D_Test_fs  = D_test[:, fs_indices_spsa]
+14.1  FITTING AND FINE TUNING A KNN CLASSIFIER
+Fit and fine-tune a KNN model using the train data. For fine-tuning, consider K values in {1, 5, 10, 15, 20} and p values in {1, 2}. Also visualize the tuning results.
+
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+
+cv_method_train = StratifiedKFold(n_splits=10, shuffle=True, random_state=999)
+import numpy as np
+params_KNN = {'n_neighbors': [1, 5, 10, 15, 20, 25, 30], 'p': [1, 2]}
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+gs_KNN = GridSearchCV(estimator=KNeighborsClassifier(), 
+                      param_grid=params_KNN, 
+                      cv=cv_method_train,
+                      verbose=1,
+                      scoring='accuracy')
+gs_KNN.fit(D_Train_fs, t_train);
+Fitting 10 folds for each of 14 candidates, totalling 140 fits
+[Parallel(n_jobs=1)]: Using backend SequentialBackend with 1 concurrent workers.
+[Parallel(n_jobs=1)]: Done 140 out of 140 | elapsed:    0.3s finished
+14.2  Multinomial Evaluation Metrics
+The accuracy of the KNN model on the test data can be calculated as follows.
+
+from sklearn import metrics
+
+t_pred = gs_KNN.predict(D_Test_fs)
+metrics.accuracy_score(t_test, t_pred)
+0.7464788732394366
+gs_KNN.best_params_
+{'n_neighbors': 15, 'p': 1}
+gs_KNN.best_score_
+0.6948529411764706
+# To extract more cross-validation results, we can call gs.csv_results 
+# - a dictionary consisting of run details for each fold.
+gs_KNN.cv_results_['mean_test_score']
+array([0.61727941, 0.61727941, 0.62830882, 0.62830882, 0.68823529,
+       0.68823529, 0.69485294, 0.69485294, 0.67683824, 0.67683824,
+       0.68308824, 0.68308824, 0.67720588, 0.67720588])
+results_KNN = pd.DataFrame(gs_KNN.cv_results_['params'])
+results_KNN['test_score'] = gs_KNN.cv_results_['mean_test_score']
+results_KNN['metric'] = results_KNN['p'].replace([1,2], ["Manhattan", "Euclidean"])
+results_KNN
+n_neighbors	p	test_score	metric
+0	1	1	0.62	Manhattan
+1	1	2	0.62	Euclidean
+2	5	1	0.63	Manhattan
+3	5	2	0.63	Euclidean
+4	10	1	0.69	Manhattan
+5	10	2	0.69	Euclidean
+6	15	1	0.69	Manhattan
+7	15	2	0.69	Euclidean
+8	20	1	0.68	Manhattan
+9	20	2	0.68	Euclidean
+10	25	1	0.68	Manhattan
+11	25	2	0.68	Euclidean
+12	30	1	0.68	Manhattan
+13	30	2	0.68	Euclidean
+import altair as alt
+
+alt.Chart(results_KNN, 
+          title='KNN Performance Comparison'
+         ).mark_line(point=True).encode(
+    alt.X('n_neighbors', title='Number of Neighbors'),
+    alt.Y('test_score', title='Mean CV Score', scale=alt.Scale(zero=False)),
+    color='metric'
+)
+
+metrics.confusion_matrix(t_test, t_pred)
+array([[14,  0,  0,  0,  0],
+       [ 0, 12,  2,  2,  0],
+       [ 0,  0, 15,  0,  0],
+       [ 0,  0,  6,  2,  5],
+       [ 0,  0,  0,  3, 10]], dtype=int64)
+print(metrics.classification_report(t_test, t_pred))
+              precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00        14
+           1       1.00      0.75      0.86        16
+           2       0.65      1.00      0.79        15
+           3       0.29      0.15      0.20        13
+           4       0.67      0.77      0.71        13
+
+    accuracy                           0.75        71
+   macro avg       0.72      0.73      0.71        71
+weighted avg       0.73      0.75      0.72        71
+
+metrics.recall_score(t_test, t_pred, average='micro')
+0.7464788732394366
+metrics.precision_score(t_test, t_pred, average='micro')
+0.7464788732394366
+metrics.f1_score(t_test, t_pred, average='micro')
+0.7464788732394367
+Finally, we can calculate the "average class accuracy using arithmetic mean" by using the balanced_accuracy_score method. This metric can be used for both binary as 
+well as multinomial classification problems.
+
+metrics.balanced_accuracy_score(t_test, t_pred)
+0.7346153846153846
+14.3  FITTING AND FINE TUNING A DECISION TREE CLASSIFIER
+Fit and fine-tune a DT model using the train data. For fine-tuning, consider max_depth values in {3, 5, 7, 10, 12} and min_samples_split values in {2, 5, 15, 20, 25}.
+Also visualize the tuning results.
+
+from sklearn.tree import DecisionTreeClassifier
+
+dt_classifier = DecisionTreeClassifier(random_state=999)
+
+params_DT = {'max_depth': [3, 5, 7, 10, 12],
+             'min_samples_split': [2, 5, 15, 20, 25]}
+            
+gs_DT = GridSearchCV(estimator=dt_classifier, 
+                     param_grid=params_DT, 
+                     cv=cv_method_train,
+                     verbose=1, 
+                     scoring='accuracy')
+
+gs_DT.fit(D_Train_fs, t_train);
+Fitting 10 folds for each of 25 candidates, totalling 250 fits
+[Parallel(n_jobs=1)]: Using backend SequentialBackend with 1 concurrent workers.
+[Parallel(n_jobs=1)]: Done 250 out of 250 | elapsed:    0.3s finished
+gs_DT.best_params_
+{'max_depth': 3, 'min_samples_split': 25}
+gs_DT.best_score_
+0.7136029411764706
+# Let's define a new data frame to store the DT grid search results for visualization.
+results_DT = pd.DataFrame(gs_DT.cv_results_['params'])
+results_DT['test_score'] = gs_DT.cv_results_['mean_test_score']
+results_DT.columns
+Index(['max_depth', 'min_samples_split', 'test_score'], dtype='object')
+alt.Chart(results_DT, 
+          title='DT Performance Comparison'
+         ).mark_line(point=True).encode(
+    alt.X('max_depth', title='Maximum Depth'),
+    alt.Y('test_score', title='Mean CV Score', scale=alt.Scale(zero=False)),
+    color='min_samples_split:N' # N is for nominal
+)
+
+14.4  FIT AND FINE TUNE A NAIVE BAYES
+Fit and fine-tune a NB model using the train data. For fine-tuning, consider var_smoothing values in np.logspace(1,-2, num=50). Also visualize the tuning results.
+
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import PowerTransformer
+
+nb_classifier = GaussianNB()
+
+params_NB = {'var_smoothing': np.logspace(1,-2, num=50)}
+
+gs_NB = GridSearchCV(estimator=nb_classifier, 
+                     param_grid=params_NB, 
+                     cv=cv_method_train,
+                     verbose=1, 
+                     scoring='accuracy')
+
+D_Train_fs_transformed = PowerTransformer().fit_transform(D_Train_fs)
+
+gs_NB.fit(D_Train_fs_transformed, t_train);
+[Parallel(n_jobs=1)]: Using backend SequentialBackend with 1 concurrent workers.
+Fitting 10 folds for each of 50 candidates, totalling 500 fits
+[Parallel(n_jobs=1)]: Done 500 out of 500 | elapsed:    0.9s finished
+gs_NB.best_params_
+{'var_smoothing': 1.3894954943731377}
+gs_NB.best_score_
+0.6757352941176471
+# Let's define a new data frame to store the NB grid search results for visualization
+results_NB = pd.DataFrame(gs_NB.cv_results_['params'])
+results_NB['test_score'] = gs_NB.cv_results_['mean_test_score']
+alt.Chart(results_NB, 
+          title='NB Performance Comparison'
+         ).mark_line(point=True).encode(
+    alt.X('var_smoothing', title='Var. Smoothing'),
+    alt.Y('test_score', title='Mean CV Score', scale=alt.Scale(zero=False))
+).interactive()
+
+14.5  Fit and fine-tune a Random Forest Classifier model
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import PowerTransformer
+
+rf_classifier = RandomForestClassifier(random_state=999)
+
+params_RF = {'n_estimators': [100, 250, 500],
+             'max_depth': [5, 7, 10, 12]}
+
+gs_RF = GridSearchCV(estimator=rf_classifier, 
+                     param_grid=params_RF, 
+                     cv=cv_method_train,
+                     verbose=1,
+                     n_jobs=-2,
+                     scoring='accuracy')
+
+gs_RF.fit(D_Train_fs, t_train);
+[Parallel(n_jobs=-2)]: Using backend LokyBackend with 7 concurrent workers.
+Fitting 10 folds for each of 12 candidates, totalling 120 fits
+[Parallel(n_jobs=-2)]: Done  36 tasks      | elapsed:    5.2s
+[Parallel(n_jobs=-2)]: Done 120 out of 120 | elapsed:   15.6s finished
+gs_RF.best_params_
+{'max_depth': 5, 'n_estimators': 250}
+gs_RF.best_score_
+0.7264705882352941
+# Let's define a new data frame to store the grid search results for visualization.
+results_RF = pd.DataFrame(gs_RF.cv_results_['params'])
+results_RF['test_score'] = gs_RF.cv_results_['mean_test_score']
+results_RF.columns
+Index(['max_depth', 'n_estimators', 'test_score'], dtype='object')
+alt.Chart(results_RF, 
+          title='RF Performance Comparison'
+         ).mark_line(point=True).encode(
+    alt.X('max_depth', title='Maximum Depth'),
+    alt.Y('test_score', title='Mean CV Score', scale=alt.Scale(zero=False)),
+    color='n_estimators:N' # N is for nominal
+)
+
+14.6  Fit each tuned classifier (with their best set of hyperparameter values) on the test data in a cross-validated fashion
+We now "fit" each tuned classifier and their best set of hyperparameter values on the test data in a cross-validated way to determine which classifier is the most robust.
+
+As an interesting experiment we will reverse the split of the training and test data with 30 % in training and 70% in test.
+
+This way, we will be measuring performance of the tuned classifiers on some data that it has and some that it hasnt encountered earlier
+
+We would like to perform pairwise t-tests to determine if any difference between the performance of any two (tuned) classifiers is statistically significant.
+
+we first perform 10-fold stratified cross-validation (no repetitions) on each classifier , controlling for randomness using the same seed in each of the four runs.
+
+Then we conduct a paired t-test for the accuracy score between the classifier combinations.
+
+For this section we perform the procedures discussed above and decide if any one the classifiers performss statistically better and is more significant than the rest at 95% 
+significance level.
+
+#We split the dataset into 4 components D_train, D_test, t_train, t_test
+#But this time we reduce the training component t0 30% and  
+
+D_train, D_test, t_train, t_test = train_test_split(Data, 
+                                                    target, 
+                                                    test_size=0.7, 
+                                                    random_state=999)
+D_Train_fs = D_train[:, fs_indices_spsa]
+D_Test_fs  = D_test[:, fs_indices_spsa]
+from sklearn.model_selection import cross_val_score
+cv_method_test = StratifiedKFold(n_splits=10 , shuffle=True, random_state=999)
+cv_results_KNN = cross_val_score(estimator=gs_KNN.best_estimator_,
+                                 X=D_Test_fs,
+                                 y=t_test, 
+                                 cv=cv_method_test, 
+                                 scoring='accuracy')
+cv_results_KNN.mean()
+0.7165441176470588
+cv_results_DT = cross_val_score(estimator=gs_DT.best_estimator_,
+                                 X=D_Test_fs,
+                                 y=t_test, 
+                                 cv=cv_method_test, 
+                                 scoring='accuracy')
+cv_results_DT.mean()
+0.7231617647058824
+D_Test_fs_transformed = PowerTransformer().fit_transform(D_Test_fs)
+
+cv_results_NB = cross_val_score(estimator=gs_NB.best_estimator_,
+                                 X=D_Test_fs_transformed,
+                                 y=t_test, 
+                                 cv=cv_method_test, 
+                                 scoring='accuracy')
+cv_results_NB.mean()
+0.7595588235294117
+cv_results_RF = cross_val_score(estimator=gs_RF.best_estimator_,
+                                 X=D_Test_fs,
+                                 y=t_test, 
+                                 cv=cv_method_test, 
+                                 n_jobs=-2,
+                                 scoring='accuracy')
+cv_results_RF.mean()
+0.7231617647058823
+from scipy import stats
+
+# RF seems to be the best, so let's compare that to the others
+# any p-value < 0.05 indicates a statistically significant result
+
+print(stats.ttest_rel(cv_results_RF, cv_results_KNN))
+print(stats.ttest_rel(cv_results_RF, cv_results_DT))
+print(stats.ttest_rel(cv_results_RF, cv_results_NB))
+Ttest_relResult(statistic=0.2835984257335582, pvalue=0.7831339381619816)
+Ttest_relResult(statistic=0.0, pvalue=1.0)
+Ttest_relResult(statistic=-1.9486829814679176, pvalue=0.08314237487949097)
+So from the above we can conclude the tuned Random Forest classifier {'max_depth': 7, 'n_estimators': 100} performs statistically more significantly than the tuned 
+Decision tree classifier {'max_depth': 5, 'min_samples_split': 2} but is not more statistically significant in terms of performance that the tuned KNN classifier 
+{'n_neighbors': 5, 'p': 1} OR the tuned NAive Bayes classifer {'var_smoothing': 0.023299518105153717} .
+
+15  Critique , underlying assumptions , strengths and weaknesses
+We have used the classification approach to carry out our predective modelling task.
+
+Our datset was not very huge and thus we were able to carry out 10 fold cross valdiation approach with 3 repetitions to ensure maximum efficiency in our process to 
+detemrine the correct paramaters via our hyper fine tuning process
+
+The underlying assumption is that regression was a better choice than the multinomial classification choce , given that our variable was continous which we converted to an 
+ordinal scale . Also we assume that a lucky split did not result due to 10 cross fold validations.
+
+One strength of our approach was that we did not use integer encoding for the categorical ordinal descriptive variables so that we had one one hot encoded variables 
+(34 of them) to choose from for the hyper parameters tuning and cross valdaition part
+
+One limitation / weaknesss we envision is that we did not use integer coding for our features . We could have used integer coding , scaled the numerical features and 
+used all the descriptive features to carry out feature ranking , thus eliminating the selection part. Its possible that in model performance we could have achived a 
+higher cross valdiation score had we gone for integer coding and using all descriptive features in HPT/CV.
+
+16  CONCLUSION
+We have used the population dataset to carry out analysis in the way of , data pre-processing, data visualisations , feature ranking and performance , 
+hyperparamter tuning & cross validation and eventual model performance evaluation
+
+We were able to carry analysis in the way of correlation plot and heatmap, univariate , bivariate and trivariate plots examining the relationships between categorical 
+and continous features which helped us delinate a story beind the data.
+
+Spliting the target into an ordinal scale enabled us to carry out a multinomial classificaiton probelem .
+
+We used 4 approaches for feature selection and ranking Here are the results
+
+Full Set of Features: 0.637 F-Score: 0.617 Mutual Information: 0.623 RFI: 0.671 SPSA: 0.666
+
+We fit 4 classifiers {KNN , Decision Tree , Naive Bayes and Random Forest} and carried out 10 fold cross validation
+
+We chose the 'accuracy metric' since Area under Curve (AUC) was not a valid metric to evaluate the model perforamnce.
+
+Our chosen model is RANDOM FOREST {'max_depth': 7, 'n_estimators': 100} with a score of 0.7161764705882353
