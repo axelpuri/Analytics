@@ -1,0 +1,660 @@
+---
+title: "Assignment 2"
+author: "Akhil Puri"
+date: "18/05/2020"
+output: word_document
+---
+
+Introduction 
+
+In this assignment task we need to analyse the eggs depositions (in millions) of age-3 Lake Huron Bloaters (Coregonus hoyi) data set between the years 1981 and 1996 , using the analysis methods covered in the course and applying suitable approaches to determine the best fitting mdoel from a set of possible models to forecast the egg depostions for the next 5 years. 
+
+
+Setup 
+
+Lets install the packages in R required to run statistial analyses on the data 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(TSA)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(tidyr)
+library(tidyverse)
+library(broom)
+library(magrittr)
+library(lmtest)
+library(FitAR)
+library(tseries)
+library(forecast)
+library(fUnitRoots)
+
+```
+
+
+Importing the data set into R and converting the data into a time series object 
+
+
+```{r,echo=FALSE}
+
+ass2 <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 4/Time Series/Assignment 2/eggs.csv", header=TRUE)
+
+view(ass2)
+class(ass2)
+
+#Converting to ts object
+
+ass2_ts<- ts(ass2$eggs , start = 1981, end=1996)
+class(ass2_ts)
+
+#Egg depostiion histogram 
+
+hist(ass2$eggs ,xlab = "Egg deposition",main = "Histogram of Egg deposition")
+```
+
+The egg deposition data is right skewed pulling the mean towards the larger oulying values . *1* The right tail is longer; the mass of the distribution is concentrated on the left of the figure. The distribution is said to be right-skewed, right-tailed, or skewed to the right, despite the fact that the curve itself appears to be skewed or leaning to the left; right instead refers to the right tail being drawn out and, often, the mean being skewed to the right of a typical center of the data. A right-skewed distribution usually appears as a left-leaning curve. 
+
+
+
+
+```{r, echo=FALSE}
+
+
+plot(ass2_ts,ylab='Egg depositions',xlab='Year',type='o', main = "Time series plot of egg depositions (in millions)")
+
+```
+
+Let us visually analyse the time series plot of the egg depsitions 
+
+Trend - There appears to be an overall upward trend. 
+Changing variance - There isnt discernible changing variance overall. 
+Seasonality - There is no seasonality in the data. 
+Autoregressive or Moving average - There is a clear autoregressive structure and pattern to the time series with some minor fluctuations but its not clear whether it is around the mean level. Overall it seems autoregressive. 
+Intervention point - There appears to be a "slight" intervention point around 1988 which leads to a sudden rise in the data and seemingly changes the overall mean level but it could be argued subjectively that there isnt a significant intervention point. 
+
+Scatter plot of egg depositions
+
+```{r, echo=FALSE}
+
+plot(y=ass2_ts,x=zlag(ass2_ts),ylab='Egg depositions', xlab='Previous year Egg depositions',main = "Scatter plot of Egg depositions")
+        
+````
+
+From the scatterplot / Lap plot it is evident that there isnt any autocorrelation present between the series and its copy one time period (lag) apart. Perfectly autocorrelated data one lag apart will cluster in a single diagonal line which the egg deposition scatter plot doesnt *2*
+
+
+ACF and PACF plots
+
+A complete auto-correlation function gives us shows us how present value of the series is correlated with its lagged values. Any given time series will have components like trend , seasonality , cyclicity and residuals . An ACF takes into account all of these while computing correlations *3*
+
+ACF has to be used in conjunction with PACF to identify the order of ARIMA models 
+
+
+
+
+```{r, echo=FALSE}
+
+ass2_acf <- acf(ass2_ts,plot = FALSE)
+par(mar=c(5,4,0,1) + 0.1)
+plot(ass2_acf ,  adj=0.5)
+
+title( "ACF Egg deposition Time Series ",line=-1)
+````
+
+Lag one is significant and is the only lag that is significant. Possibly because the series isnt very long. The slowly decaying pattern (degradation ) of the correlations indicates non-stationarity. 
+
+Use the autocorrelation function and the partial autocorrelation functions together to identify ARIMA models. Examine the spikes at each lag to determine whether they are significant. A significant spike will extend beyond the significance limits, which indicates that the correlation for that lag doesn't equal zero. *4*
+
+Interpreting the autocorrelation plot requires the data to be stationary. A stationary time series has a mean, variance, and autocorrelation function that are essentially constant through time
+
+Lets look at PACF now. 
+
+PACF is a partial auto correlation which finds correlation between the lags of the residuals , so if there is any hidden information in the residuals it will reveal itself in the PACF and that can be statistically significant while modelling . Neither do we want to keep to many features while modelling as that can creaet multicollinearity issues. 
+
+```{r, echo=FALSE}
+
+ass2_pacf <- acf(ass2_ts,plot = FALSE)
+par(mar=c(5,4,0,1) + 0.1)
+plot(ass2_pacf ,  adj=0.5)
+
+title( " PACF Egg deposition Time Series ",line=-1)
+        
+````
+
+The pattern here is that there is a significant correlation at the first lag followed by correlations that are not so significant.
+
+This implies an autoregressive term in the data . The number of significant correlations inidcate the order of the autoregressive term.
+
+Having analysed the ACf and PACF of the observed series we need to now proceed with differencing as the series is non-statioanary given the decaying (slowly degrading) nature of the correlations.
+
+Before we proceed with differening we need to first transform the data using Box cox tranformation . 
+
+```{r, echo=FALSE}
+
+ass2_ts.tfm = BoxCox.ar(ass2_ts, method = "yule-walker")
+
+
+ass2_ts.tfm$ci
+
+````
+
+WE take the mid point of the confidence interval as the value of lambda to carry out the transformation 
+
+```{r, echo=FALSE}
+
+lambda = 0.45
+
+ass2_ts.BC = (ass2_ts^lambda-1)/lambda
+
+
+````
+
+Having carried out the boxcox transformation we now proceed to differencing 
+
+We carry out differencing in order to make the series statioanary and to be able to read the ACF and PACF plots in order to determine the order of AR and MA components.  
+```{r, echo=FALSE}
+
+#Differencing 
+
+ass2_ts.BC.diff1 = diff(ass2_ts.BC, differences=1)
+plot(ass2_ts.BC.diff1,type='o',ylab='Egg depositions', main='1st differencing of Egg depositions')
+
+
+````
+
+Lets calcualte the ADF after 1st differencing 
+
+```{r, echo=FALSE}
+
+#ADF
+
+order = ar(diff(ass2_ts.BC.diff1))$order
+adfTest(ass2_ts.BC.diff1, lags = order, title = NULL,description = NULL)
+
+
+````
+
+The P value of the from the ADF test is greater than the alpha value of 0.05 which is threahold for testing the statistial significance of the null hypothesis which assumes the series is non-statioanry. Since the p-value is greater than 0.05 we fail to reject the null hypothesis . 
+That is we accept the null hypothesis that the series is not statioanry 
+
+Now we apply 2nd differencing and conduct ADF test to check for stationarity 
+
+```{r, echo=FALSE}
+
+#2nd order Differencing 
+ass2_ts.BC.diff2 = diff(ass2_ts.BC,differences=2)
+plot(ass2_ts.BC.diff2,type='o',ylab='Egg depositions',main='2nd differencing of Egg depositions')
+
+#ADF
+order = ar(diff(ass2_ts.BC.diff2))$order
+adfTest(ass2_ts.BC.diff2, lags = order, title = NULL,description = NULL)
+
+
+````
+
+After the 2nd differencing we see that the p-value has gone down to 0.1098 but its still not less than the alpha threshold of 0.05 to reject the null hypothesis . That is we again fail to reject the null hypothesis that the series is non-stationary
+
+Let apply a 3rd Differencing 
+
+```{r, echo=FALSE}
+
+#3rd order differencing 
+ass2_ts.BC.diff3 = diff(ass2_ts.BC,differences=3)
+plot(ass2_ts.BC.diff3,type='o',ylab='Egg depositions',main='3rd differencing of Egg depositions')
+
+#ADF
+
+order = ar(diff(ass2_ts.BC.diff3))$order
+
+order
+
+
+adfTest(ass2_ts.BC.diff3, lags = order, title = NULL,description = NULL)
+
+````
+Again the pvalue is greater than 0.05. Thus we fail to reject the null hypotheis that the series is non-stationary. 
+
+NOTE : The diaplay and analysis of ACF & PACF plots should only be undertaken once we are sure that the series is stationary i.e the p value from the ADF test is less than 0.05 
+
+Lets move on to 4th differencing 
+
+```{r, echo=FALSE}
+
+#3rd order differencing 
+ass2_ts.BC.diff4 = diff(ass2_ts.BC,differences=4)
+plot(ass2_ts.BC.diff4,type='o',ylab='Egg depositions',main='4th differencing of Egg depositions')
+
+#ADF
+order = ar(diff(ass2_ts.BC.diff4))$order
+
+order 
+
+adfTest(ass2_ts.BC.diff4, lags = order, title = NULL,description = NULL)
+
+````
+
+Finally after 4th differencing do we see a p-value of 0.02265  less than 0.05.
+
+Thus we reject the null hypothesis that the series is non-stationary
+
+
+Lets plot the 4th differenced egg deposition time series 
+
+```{r, echo=FALSE}
+
+plot(ass2_ts.BC.diff4,ylab='Egg depositions',xlab='Year',type='o', main = "Time series plot of egg depositions after 4th differencing (in millions)")
+
+
+````
+
+Lets look at the descpriptive features of the 4th order differencing series 
+
+Trend: We can clearly see that the trend that was appparent in the observed series is now non-existent and the series fluctuates and settles around the mean level
+Changing variance: There is no obvious changing variance except for a minor change in variance between the years 1988 and 1991 where the observed variance is less than than the variance between the remaining years. 
+Seasonality: Cannot observe any obvious repeating cyclical patterns. 
+Autocorrelation structure: There are very few succeeding data points and more fluctuations around the mean level in the series suggesting it could be a moving average structure.
+Intervention: There is no discernible data-point that changes the mean level of the series drastically. 
+
+ACF PLOT OF EGGS DEPOSITION DATASET WITH 4TH ORDER DIFFERENCING
+
+```{r, echo=FALSE}
+
+
+acf_ass2.4thdiff <- acf(ass2_ts.BC.diff4,plot = FALSE)
+
+par(mar=c(5,3,1.5,1.5) + 0.1 )
+  
+plot(acf_ass2.4thdiff ,  adj=0.5)
+
+title( "ACF 4th differenced Egg deposition Time Series ", line= 0.5)
+
+
+
+````
+
+From the ACF we can see that there is a significant correlations at the first lag, followed by correlations that are not significant. We can also potenitally visualise a sine wave pattern reducing after the first lag but it doesnt continue to taper off or decrease which means that we can rule out a higher order autoregressive term. 
+
+This is loking like a moving average process MA(1) and if the the PACF throws up similar symptoms in the way visual inspection of the correlations ten we will be able to add the autoregressive component of ARIMA model we will be fitting to these series. 
+
+At the momeent we have ARIMA(0,4,1)
+
+
+Now let us analyse the PACF which can help iu further corroborate our findings from the ACF. 
+
+
+
+```{r, echo=FALSE}
+
+
+pacf_ass2.4thdiff <- pacf(ass2_ts.BC.diff4,plot = FALSE)
+
+par(mar=c(5,3,1.5,1.5) + 0.1 )
+  
+plot(pacf_ass2.4thdiff ,  adj=0.5)
+
+title( "PACF 4th differenced Egg deposition Time Series ", line= 0.5)
+
+
+
+````
+
+There is a significant correlation at the first or second lag, followed by correlations that are not significant.
+This is indicative of an autoregressive term in the data. 
+The number of significant correlations indicate the order of the autoregressive term.
+
+
+Through visual inspection of ACF and PACF we can now specify the orders of the ARIMA model that we can fit to this series 
+
+ARIMA (1,4,1)
+
+EACF plot of 4th differencing 
+
+```{r, echo=FALSE}
+
+
+eacf(ass2_ts.BC.diff4,ar.max = 2 , ma.max = 2)
+
+
+````
+We limit the order of AR and MA to 2 because it is not a very that is the order of integration of the series which is the minimum amount of differencing required to make the series difference statioanry.Anything greater than that we get an error.
+
+We look for the top left vertex right under the cross which is p= 1 and q =0 which gives us ARIMA (1,4,0)
+
+the other candidate models are the circles around / adjacent to the top left circle vertex which are 
+
+ARIMA (2,4,0) , ARIMA (2,4,1) & ARIMA (1,4,1) (this one we already got from the ACF and PACF plots)
+
+
+BIC TABLE OF 4TH ORDER DIFFERENCING 
+
+```{r, echo=FALSE}
+
+ass2_ts.diff4.BIC = armasubsets(y=ass2_ts.BC.diff4,nar=4,nma=4,y.name='test',ar.method='ols')
+
+plot(ass2_ts.diff4.BIC)
+
+title ("BIC table of 4th order differencing" , line= 6)
+
+````
+
+In the BIC  table the test lags refer to the AR component and the errorlags refer to the MA component. 
+
+From the table we get ARIMA(0,4,2) & ARIMA(0,4,4)
+
+
+So the final models that we get from ACF / PACF, EACF and BIC table are 
+
+ARIMA (1,4,0)
+ARIMA (1,4,1) 
+ARIMA (2,4,0) 
+ARIMA (2,4,1) 
+ARIMA (0,4,2) &
+ARIMA (0,4,4)
+
+Lets move on to parameter estimation 
+
+In parameter estimation we need to estiamte model parameters and compare different models developed for our dataset in terms of their estimation and prediction accuracy
+
+We pass the normalised series in the arima function to determine the significance of the co-efficients 
+
+
+ARIMA (1,4,0)
+
+```{r, echo=FALSE}
+
+model_140_css = arima(ass2_ts.BC, order = c(1,4,0), method = 'CSS')
+coeftest(model_140_css)
+
+model_140_ml = arima(ass2_ts.BC, order = c(1,4,0), method = 'ML')
+coeftest(model_140_ml)
+
+
+````
+
+The AR1 component has significant co-efficients according to both paramter estimation methods but is missing the MA component.
+Ideally our model should have both AR and MA components since the ACF and PACF plots for  4th order differencing had a high correlation at lag 1 with all other lags looking insignificant. 
+Since the AR component had a significant co-effiecients , I will be considering this as a potential model just for comparison purposes with other models. 
+
+ARIMA (1,4,1)
+
+```{r, echo=FALSE}
+
+model_141_css = arima(ass2_ts.BC, order = c(1,4,1), method = 'CSS')
+coeftest(model_141_css)
+
+model_141_ml = arima(ass2_ts.BC, order = c(1,4,1), method = 'ML')
+coeftest(model_141_ml)
+
+
+````
+
+Here we have both AR and MA components with highly significant co-efficients. 
+This one will definitely be considered for AIC and BIC scores and residual analysis 
+
+
+ARIMA (2,4,0)
+
+```{r, echo=FALSE}
+
+model_240_css = arima(ass2_ts.BC, order = c(2,4,0), method = 'CSS')
+coeftest(model_240_css)
+
+model_240_ml = arima(ass2_ts.BC, order = c(2,4,0), method = 'ML')
+coeftest(model_240_ml)
+
+
+````
+
+The AR2 component has co-efficients that are not very significant. AR 1 is significant. 
+The significance remains the same with a change in the parameter estimation method.
+This one should be considered too as a candidate model for AIC / BIC score to decide whether it should be included for  residual analysis. 
+
+ARIMA (2,4,1)
+
+```{r, echo=FALSE}
+
+model_241_css = arima(ass2_ts.BC, order = c(2,4,1), method = 'CSS')
+coeftest(model_241_css)
+
+model_241_ml = arima(ass2_ts.BC, order = c(2,4,1), method = 'ML')
+coeftest(model_241_ml)
+
+
+````
+
+The AR1 co-efficient is significant but not the AR2 co-efficient. The MA co-efficeint isnt very significant either. 
+The maximum likelihood estiamtion method on the other hand throws up a significant MA component. 
+We will be considering this as a candidate model for AIC / BIC scores. 
+
+
+ARIMA (0,4,2)
+
+```{r, echo=FALSE}
+
+model_042_css = arima(ass2_ts.BC, order = c(0,4,2), method = 'CSS')
+coeftest(model_042_css)
+
+model_042_ml = arima(ass2_ts.BC, order = c(0,4,2), method = 'ML')
+coeftest(model_042_ml)
+
+
+````
+The co-efficients of the MA component are significant . 
+Although this is lacking a AR component we will still  be considering this model during AIC and BIC scores to decide whether we should conduct residal analysis for this model 
+
+ARIMA (0,4,4)
+
+```{r, echo=FALSE}
+
+model_044_css = arima(ass2_ts.BC, order = c(0,4,4), method = 'CSS')
+coeftest(model_044_css)
+
+model_044_ml = arima(ass2_ts.BC, order = c(0,4,4), method = 'ML')
+coeftest(model_044_ml)
+
+
+````
+
+There is an error in the maximum likelihood estimation so we wont be considering this model. 
+And the p and q orders are quite high as well. 
+We will not be considering this model for AIC and BIC scores
+
+Now lets look at the AIC and BIC scores for all the possible models 
+
+First lets source the sort score funciton 
+
+```{r, echo=FALSE}
+
+sort.score <- function(x, score = c("bic", "aic")){
+if (score == "aic"){
+x[with(x, order(AIC)),]
+} else if (score == "bic") {
+x[with(x, order(BIC)),]
+} else {
+warning('score = "x" only accepts valid arguments ("aic","bic")')
+}
+}
+
+````
+
+Now let us call the sort score function with the maximum likelihood parameters for the different models.
+The models we select for AIC and BIC score should 
+
+```{r, echo=FALSE}
+
+sort.score(AIC(model_140_ml,model_141_ml,model_240_ml,model_241_ml,model_042_ml), score = "aic")
+
+sort.score(BIC(model_140_ml,model_141_ml,model_240_ml,model_241_ml,model_042_ml), score = "bic")
+
+````
+
+Models - model_042_ml, model_141_ml have the lowest AIC and BIC scores
+
+Finally lets check for overfitting by increasing the orders by 1
+
+```{r, echo=FALSE}
+
+#Arima(1,4,2)
+model_142_css = arima(ass2_ts.BC, order = c(1,4,2), method = 'CSS')
+coeftest(model_142_css)
+
+model_142_ml = arima(ass2_ts.BC, order = c(1,4,2), method = 'ML')
+coeftest(model_142_ml)
+
+#Arima(0,4,3)
+
+model_043_css = arima(ass2_ts.BC, order = c(0,4,3), method = 'CSS')
+coeftest(model_044_css)
+
+model_043_ml = arima(ass2_ts.BC, order = c(0,4,3), method = 'ML')
+coeftest(model_043_ml)
+
+#Arima(2,4,1)
+
+model_241_css = arima(ass2_ts.BC, order = c(2,4,1), method = 'CSS')
+coeftest(model_241_css)
+
+model_241_ml = arima(ass2_ts.BC, order = c(2,4,1), method = 'ML')
+coeftest(model_241_ml)
+
+#Arima (1,4,2)
+
+model_142_css = arima(ass2_ts.BC, order = c(1,4,2), method = 'CSS')
+coeftest(model_044_css)
+
+model_142_ml = arima(ass2_ts.BC, order = c(1,4,2), method = 'ML')
+
+
+````
+
+As we can see from the overfitting check that only AR(1) and MA(1) co-efficients are significant 
+
+We will now conduct residual analysis on both the models i.e model_042_ml, model_141_ml to decide which is the model that we will be using for forecasting the future values of egg depositions of of age-3 Lake Huron Bloaters (Coregonus hoyi)
+
+
+Lets define the residual analysis function 
+
+
+```{r, echo=FALSE}
+
+residual.analysis <- function(model, std = TRUE,start = 2, class = c("ARIMA","GARCH","ARMA-GARCH")[1]){
+  library(TSA)
+  library(FitAR)
+  if (class == "ARIMA"){
+    if (std == TRUE){
+      res.model = rstandard(model)
+    }else{
+      res.model = residuals(model)
+    }
+  }else if (class == "GARCH"){
+    res.model = model$residuals[start:model$n.used]
+  }else if (class == "ARMA-GARCH"){
+      res.model = model@fit$residuals
+  }else {
+    stop("The argument 'class' must be either 'ARIMA' or 'GARCH' ")
+  }
+  par(mfrow=c(3,2))
+  plot(res.model,type='o',ylab='Standardised residuals', main="Time series plot of standardised residuals")
+  abline(h=0)
+  hist(res.model,main="Histogram of standardised residuals")
+  acf(res.model,main="ACF of standardised residuals")
+  pacf(res.model,main="PACF of standardised residuals")
+  qqnorm(res.model,main="QQ plot of standardised residuals")
+  qqline(res.model, col = 2)
+  print(shapiro.test(res.model))
+  k=0
+  LBQPlot(res.model, lag.max = 15, StartLag = k + 1, k = 0, SquaredQ = FALSE)
+}
+
+````
+
+
+RESIDUAL ANALYSIS DAIGNOSTIC CHECK
+
+Now let us pass the 2 models shortlisted for the residual analysis through the function defined above
+
+  
+
+```{r, echo=FALSE}
+
+residual.analysis(model = model_042_ml)
+par(mfrow=c(1,1))
+
+````
+
+Analysis through visual description of the different plots of the distribution of the residauls for the model ARIMA(0,4,2)
+
+
+Time series plot- The time series of the residuals has a random pattern with a few outlier breaching the threshold of 1. The model could not completely capture these datapoints and we might need to check what caused a spike in the egg depositions for those years. 
+
+
+Histogram: There doesnt appear to be any obvious skewness in the distribution from the histogram. 
+
+
+ACF plot: There is no pattern nor any significant lags leading us to  conclude that the graph shows evidence of no statistical significant  autocorrelation between the residuals.
+
+PACF plot: There is a minor significance in the 4th lag  but this can be largely  ignored as a abberation given the random pattern beytween the autocorrelation between the residuals. 
+
+QQ plot: The residuals seem to be normally distributed around the red line with a slight deviation off the tails in the beginning.  
+
+
+Ljung-box test: The p-value for all the lags is above the the signifance level of 0.05 . The null hypothesis of the Box Ljung Test, H0, is that our model does not show lack of fit (or in simple terms—the model is just fine). The alternate hypothesis, Ha, is just that the model does show a lack of fit. *5* Thus we fail to reject the null hypothesis leading to the conclusion that there is no lack of fit and that the model is just fine. 
+
+Shapiro-Wilk test: The p-value = 0.2986 is greater than our chosen alpha level of 0.05, hence we fail to reject the null hypothesis that the data is normally distributed. 
+
+
+There is no problem in the residuals of ARIMA(0,4,2) model.
+
+
+
+```{r, echo=FALSE}
+
+residual.analysis(model = model_141_ml)
+par(mfrow=c(1,1))
+
+````
+
+Analysis through visual description of the different plots of the distribution of the residauls for the model ARIMA(1,4,1)
+
+Time series plot- The time series of the residuals has a random pattern with a few outlier breaching the threshold of 1. The model could not completely capture these datapoints and we might need to check what caused a spike in the egg depositions for those years (1986 , 1991) 
+
+
+Histogram: There doesnt appear to be any obvious skewness in the distribution from the histogram. That measn the values do not tail off significantly either side of the histogram. 
+
+
+ACF plot: There is no pattern nor any significant lags leading us to  conclude that the graph shows evidence of no statistical significant  autocorrelation between the residuals.
+
+
+PACF plot: There is a minor significance in the 4th lag  but this can be largely  ignored as a abberation given the random pattern beytween the autocorrelation between the residuals. 
+
+
+QQ plot: The residuals seem to be normally distributed around the red line with a slight deviation off the tails in the beginning.  
+
+
+Ljung-box test: The p-value for all the lags is above the the signifance level of 0.05 . The null hypothesis of the Box Ljung Test, H0, is that our model does not show lack of fit (or in simple terms—the model is just fine). The alternate hypothesis, Ha, is just that the model does show a lack of fit. *5* Thus we fail to reject the null hypothesis leading to the conclusion that there is no lack of fit and that the model is just fine. 
+
+Shapiro-Wilk test: The p-value = 0.1524 is greater than our chosen alpha level of 0.05, hence we fail to reject the null hypothesis that the data is normally distributed. 
+
+
+Given the analysis above the only differentiaating factor between the resduals of the 2 models is the Shapiro-Wilk test of the residuals of model ARIMA(0,4,2) yielding a higher p value of 0.2986 as opposed to the p-value of 0.1524 for the residuals of the model ARIMA(1,4,1). 
+
+This means that the residuals of the model ARIMA(0,4,2) are more randomly distributed. 
+
+Thus we will chose model ARIMA(0,4,2) as the model for forecasting the next 5 years 
+
+FORECASTING 
+
+We fit the model ARIMA(0,4,2) for forecasting the next 5 years ( 1997-2001) of egg depositions  (in millions) of age-3 Lake Huron Bloaters (Coregonus hoyi)
+
+```{r, echo=FALSE}
+
+
+model_042_fit = Arima(ass2_ts,c(1,4,1),lambda=.5)
+
+plot(forecast(model_042_fit,h=5),ylim=c(0,3.5),xlab='Year',ylab='Egg depositions (in millions)',main='Forecasting of Egg depositions for the next five years')
+
+
+````
+
