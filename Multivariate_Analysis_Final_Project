@@ -1,0 +1,625 @@
+MULTIVARIATE ANALYSIS ASSIGNMENT 2
+AKHIL PU
+RI
+S3774583
+Question 1.
+i. Prepare the dataset for input for a PCA via SAS. (2 marks)
+ii. Perform a principal component analysis using SAS on the correlation matrix for the p=9 variables. Show your full SAS code and output. Perform a PCA on the whole data set of molecules using SAS. (6 marks)
+SAS OUTPUT
+The first PC is a linear combination of PC1 = 0.401994*MW -.152728*LogP -.184448*LogD +0.392157*Hdonors +0.417390*Hacceptors +0.429203*PSA + 0.296647*ROT + 0.370392*NATOM + 0.208918*NRING
+This can be interpreted as a contrast between the equally weighted sum of LogP , Lod D and the equally weighted sum of MW, Hdonors, Hacceptors, PSA, NATOM and a small contribution from the other components.
+The second PC is the linear combination PC2 = 0.265940* MW + 0.549606* LogP + 0.534108* LogD - 0.204210* Hdonors - 0.069642* Hacceptors -0.157166 * PSA + 0.197127* ROT + 0.319962* NATOM + 0.359791* NRING This can be interpreted as a contrast between (-) Hdonors , PSA and an equally weighted sum of LogP, LogD , and a medium to small contribution from the other variables in the positive direction.
+The third PC is the linear combination PC3 = -0.032637* MW + 0.111241* LogP + 0.086099* LogD + 0.056273* Hdonors -0.113475* Hacceptors -0.015606* PSA+ 0.698575* ROT + 0.039111* NATOM – 0.687985* NRING This can be interpreted as a weighted contrast between (+) NRING and (-)ROT , and a small contribution from the other variables.
+The fourth PC is the linear combination PC4 = -.044052* MW+ 0.369102* LogP + 0.388775* LogD + 0.220030* Hdonors + 0.545761* Hacceptors + 0.251764* PSA -0.327950* ROT -0.304304* NATOM -0.317603* NRING This can be interpreted as a weighted contrast between (-) ROT, NATOM , NRING and Hacceptors, LogD, LogP
+The fifth PC is the linear combination PC5 = 0.001204* MW + 0.227459* LogP -0.023836* LogD+ 0.733720* Hdonors - 0.476305* Hacceptors -0.108777* PSA -0.296005* ROT + 0.266056* NATOM - 0.110657* NRING This can be interpreted as a contrast between (-) Hacceptors and (+) Hdonors
+The sixth PC is the linear combination PC6 = -0.469565* MW + 0.050483* LogP + 0.114953* LogD + 0.379493* Hdonors - 0.034340* Hacceptors + 0.044233* PSA + 0.426269* ROT - 0.443399* NATOM + 0.488148* NRING This can be interpreted as a weighted contrast between (-) MW , NATOM and (+) NRING, ROT
+The seventh PC is the linear combination PC7 = 0.023751* MW - 0.662800* LogP + 0.712587* LogD + 0.087364* Hdonors - 0.150867* Hacceptors + 0.102064* PSA - 0.055372* ROT + 0.082460* NATOM -0.040940* NRING This can be interpreted as a weighted contrast between (-) LogP and (+) LogD and a small contribution from the other components.
+The Eight PC is the linear combination PC8 = 0.222720 * MW + 0.157830* LogP - 0.022743* LogD - 0.179267* Hdonors - 0.507772* Hacceptors + 0.746880* PSA - 0.031554* ROT -0.275499* NATOM + 0.016552* NRING This can be interpreted as a weighted contrast between (-) Hacceptors and (+) PSA
+The ninth PC is the linear combination PC9 = - 0.702858* MW + 0.086582* LogP + 0.008267* LogD - 0.175507* Hdonors + 0.039562*Hacceptors + 0.381339* PSA - 0. 064790* ROT + 0.562331* NATOM -0.014974* NRING
+This can be interpreted as a weighted contrast between (-) MW and (+) NATOM, PSA being slightly skewed in the positive direction
+iii. SCREE PLOT
+PROFILE PLOT
+Component Pattern plots
+
+
+
+
+
+iv. COMPONENT SCORES
+
+
+
+
+
+v. Loading Plots
+
+
+a) Report the eigenvalues and the eigenvectors. (2 marks)
+Eigenvalues of the Correlation Matrix
+Eigenvalue
+Difference
+Proportion
+Cumulative
+PC1
+4.73045355
+2.12367349
+0.5256
+0.5256
+PC2
+2.60678006
+1.76125011
+0.2896
+0.8152
+PC3
+0.84552994
+0.58014848
+0.0939
+0.9092
+PC4
+0.26538146
+0.02695961
+0.0295
+0.9387
+PC5
+0.23842185
+0.12930442
+0.0265
+0.9652
+PC6
+0.10911743
+0.01571009
+0.0121
+0.9773
+PC7
+0.09340733
+0.02788250
+0.0104
+0.9877
+PC8
+0.06552483
+0.02014128
+0.0073
+0.9950
+PC9
+0.04538355
+0.0050
+1.0000
+EIGENVECTORS
+Eigenvectors
+PRIN1
+PRIN2
+PRIN3
+PRIN4
+PRIN5
+PRIN6
+PRIN7
+PRIN8
+PRIN9
+MW
+0.401994
+0.265940
+-.032637
+-.044052
+0.001204
+-.469565
+0.023751
+0.222720
+-.702858
+LogP
+-.152728
+0.549606
+0.111241
+0.369102
+0.227459
+0.050483
+-.662800
+0.157830
+0.086582
+LogD
+-.184448
+0.534108
+0.086099
+0.388775
+-.023836
+0.114953
+0.712587
+-.022743
+0.008267
+Hdonors
+0.392157
+-.204210
+0.056273
+0.220030
+0.733720
+0.379493
+0.087364
+-.179267
+-.175507
+Hacceptors
+0.417390
+-.069642
+-.113475
+0.545761
+-.476305
+-.034340
+-.150867
+-.507772
+0.039562
+PSA
+0.429203
+-.157166
+-.015606
+0.251764
+-.108777
+0.044233
+0.102064
+0.746880
+0.381339
+ROT
+0.296647
+0.197127
+0.698575
+-.327950
+-.296005
+0.426269
+-.055372
+-.031554
+-.064790
+NATOM
+0.370392
+0.319962
+0.039111
+-.304304
+0.266056
+-.443399
+0.082460
+-.275499
+0.562331
+NRING
+0.208918
+0.359791
+-.687985
+-.317603
+-.110657
+0.488148
+-.040940
+0.016552
+-.014974
+b) What percentage of the total sample variation is accounted for by each of the first PC, 2nd PC to the ninth PC? (5 marks)
+PC
+Cumulative
+1
+52.56%
+2
+28.96%
+3
+9.39%
+4
+2.95%
+5
+2.65%
+6
+1.21%
+7
+1.04%
+8
+.73%
+9
+.50%
+c) What percentage of the total sample variation is accounted for by the first PC to the ninth PC? (1 mark)
+100%
+d) Write out the formulation for the PCs. (5 marks)
+The first PC is a linear combination of PC1 = 0.401994*MW -.152728*LogP -.184448*LogD +0.392157*Hdonors +0.417390*Hacceptors +0.429203*PSA + 0.296647*ROT + 0.370392*NATOM + 0.208918*NRING
+This can be interpreted as a contrast between the equally weighted sum of LogP , Lod D and the equally weighted sum of MW, Hdonors, Hacceptors, PSA, NATOM and a small contribution from the other components.
+The second PC is the linear combination PC2 = 0.265940* MW + 0.549606* LogP + 0.534108* LogD - 0.204210* Hdonors - 0.069642* Hacceptors -0.157166 * PSA + 0.197127* ROT + 0.319962* NATOM + 0.359791* NRING This can be interpreted as a contrast between (-) Hdonors , PSA and an equally weighted sum of LogP, LogD , and a medium to small contribution from the other variables in the positive direction.
+The third PC is the linear combination PC3 = -0.032637* MW + 0.111241* LogP + 0.086099* LogD + 0.056273* Hdonors -0.113475* Hacceptors -0.015606* PSA+ 0.698575* ROT + 0.039111* NATOM – 0.687985* NRING This can be interpreted as a weighted contrast between (+) NRING and (-)ROT , and a small contribution from the other variables. The fourth PC is the linear combination PC4 = -.044052* MW+ 0.369102* LogP + 0.388775* LogD + 0.220030* Hdonors + 0.545761* Hacceptors + 0.251764* PSA -0.327950* ROT -0.304304* NATOM -0.317603* NRING This can be interpreted as a weighted contrast between (-) ROT, NATOM , NRING and Hacceptors, LogD, LogP
+The fifth PC is the linear combination PC5 = 0.001204* MW + 0.227459* LogP -0.023836* LogD+ 0.733720* Hdonors - 0.476305* Hacceptors -0.108777* PSA -0.296005* ROT + 0.266056* NATOM - 0.110657* NRING This can be interpreted as a contrast between (-) Hacceptors and (+) Hdonors
+The sixth PC is the linear combination PC6 = -0.469565* MW + 0.050483* LogP + 0.114953* LogD + 0.379493* Hdonors - 0.034340* Hacceptors + 0.044233* PSA + 0.426269* ROT - 0.443399* NATOM + 0.488148* NRING This can be interpreted as a weighted contrast between (-) MW , NATOM and (+) NRING, ROT
+The seventh PC is the linear combination
+PC7 = 0.023751* MW - 0.662800* LogP + 0.712587* LogD + 0.087364* Hdonors - 0.150867* Hacceptors + 0.102064* PSA - 0.055372* ROT + 0.082460* NATOM -0.040940* NRING This can be interpreted as a weighted contrast between (-) LogP and (+) LogD and a small contribution from the other components.
+The Eight PC is the linear combination PC8 = 0.222720 * MW + 0.157830* LogP - 0.022743* LogD - 0.179267* Hdonors - 0.507772* Hacceptors + 0.746880* PSA - 0.031554* ROT -0.275499* NATOM + 0.016552* NRING This can be interpreted as a weighted contrast between (-) Hacceptors and (+) PSA
+The ninth PC is the linear combination PC9 = - 0.702858* MW + 0.086582* LogP + 0.008267* LogD - 0.175507* Hdonors + 0.039562*Hacceptors + 0.381339* PSA - 0. 064790* ROT + 0.562331* NATOM -0.014974* NRING This can be interpreted as a weighted contrast between (-) MW and (+) NATOM, PSA being slightly skewed in the positive direction
+e) Interpret the PCs via eigen values. (5 marks)
+We can use the size of the eigenvalues to determine the number of principal components we need for dimension reduction that can cover as much of the variance as is possible in the dataset.
+We retain the principal components with the largest eigenvalues. For example, using the Kaiser criterion, you use only the principal components with eigenvalues that are greater than 1.
+Thus if we look at the Eigenvalues for the correlation matrix , PC1 and PC2 together account for 81.52% of the variance . The third PC accounts for 9.39% od the total variance taking the cumulative total to 90.92%. The acceptable level of variance depends on the objectives of the statistical analysis being undertaken.
+If 80% is an adequate amount of desired variance of the data that needs to be explained by the PCS then we will use the first 2 PCs
+If 90% is an adequate amount of desired variance of the data that needs to be explained by the PCS then we will use the first 3 PCs
+f) Interpret the PCs using your component pattern profiles from SAS. (4 marks)
+Lets have a look at the profile plot again
+We cannot really delineate the relationship / correlation between the variables and the PCS as there are too many of them to glean anything meaningfully
+Now we look at the component pattern plots
+Since there are 9 PCs we will get 9C2 (8+7+6+5+4+3+2+1) = 36 plots to interpret the PCs/ determine the relationship between the PCs and the original variables
+A better idea would be to look at the Pearson’s correlation co-efficients as a table
+Now we can clearly delineate / interpret the PCS using the correlations co-efficients
+PC1 – Strong positive correlation with MW, Hdonors, Hacceptors, PSA, NATOM
+Medium /average positive correlation with ROT, NRING
+Negative correlation with LogD, LogP
+PC2 - Strong positive correlation with LogP, LogD,
+Medium /average positive correlation with MW, ROT, NATOM, NRING
+Weak positive correlation with ROT
+Negative weak correlation with Hdonors, Hacceptors
+PC3 - Medium /average positive correlation with ROT
+Weak positive correlation with LogP, Hacceptors, Hdonors, NATOM
+Weak negative correlation with MW, Hacceptors
+PC4 – Weak positive correlation with LogP, LogD, Hdonors, Hacceptors, PSA
+Weak negative correlation with MW, ROT, NATOM, NRING
+PC5 - Weak positive correlation with MW, LogP, Hdonors, NATOM
+Weak negative correlation with LogD, Hacceptors, PSA, NRING
+PC6 - Weak positive correlation with LogP, LogD, Hdonors, PSA, ROT, NRING
+Weak negative correlation with MW, Hacceptors, NATOM
+PC7- Weak positive correlation with MW, LogD, Hdonors, PSA, NATOM
+Weak negative correlation with LogP, Hacceptors, ROT, NRING
+PC8- Weak positive correlation with MW, LogP, Hdonors, PSA, NRING
+Weak negative correlation with Hdonors , LogD, Hacceptors, ROT, NATOM
+PC9- Weak positive correlation with LogP, LogD, Hacceptors, PSA, NATOM
+Weak negative correlation with MW , Hdonors, ROT, NRING
+g) Can the data be effectively summarised in fewer than 9 dimensions? Justify your answer using BOTH relevant plots and eigenvalues. (5 marks)
+Yes the data can effectively be summarised in less than 9 dimensions
+From the above scree plot we can delineate that first 2 principal components have an eigen value greater than 1. Since the third PC is very close to 1 we include it in the list of PCA.
+A commonly used criterion for the number of factors to rotate is the eigenvalues-greater-than-one rule proposed by Kaiser (1960). It states that there are as many reliable factors as there are eigenvalues greater than one. The reasoning is that an eigenvalue less than one implies that the scores on the component would have negative reliability (Cliff, 1988)
+Thus we can account for adequate variance (around 90%) of the dataset if we take k=3
+Question 2: PCA with reduced k <p for plots Choose the reduced dimensionality k < 9, you think appropriate for data reduction from 9 to k, based on your PCA findings in Question1. Justify your choice of k carefully. Rerun the PCA for the violators and the non-violators separately as delineated by score_9 log D using your k from Q 1.
+a) Recreate the 5 plots related to PROC PCA for your given k. (5 marks)
+Violators score9_logD_group > 4 ; score9_logD_group = 2
+Scree plot
+Profile plot
+Component Pattern plots
+Score plots
+
+Score plots grouped by Oral status: Oral / non oral
+
+Loading Plots
+Non-violators score9_logD_group <= 4 ; score9_logD_group = 1
+Scree plot
+Profile plot
+Component Pattern plots
++
+Score plots
+
+
+Score plots grouped by Oral status
+Loading Plots
+
+b) Using the plots based on your reduced dimensionality k from part a) and outputs interpret the first to k PC’s via eigenvalues. (10 marks)
+Let us interpret the PCs for the group violators score9_logD_group >4 ,
+score9_logD_group = 2
+The last table of the above PRINCOMP Procedure gives us the Eigenvalues of the correlation matrix The first PC has an Eigen Value of 5.09425408. This accounts for 56.6% of the variance of the retained 3 PCS from the original 9 variables The 2nd PC has an Eigen value of 1.98208283 . Proportionately this accounts for 22.20% of the variance of the retained 3 PCS from the original 9 variables and cumulatively 78.63% of the overall variance, The 3rd PC has an Eigen value of 1.08103530 . Proportionately this accounts for 12.01% of the variance of the retained 3 PCS from the original 9 variables and cumulatively 90.64% of the overall variance.
+Now lets interpret the PCs for the group non- violators ; score9_logD_group <=4 , score9_logD_group = 1
+The last table of the above PRINCOMP Procedure gives us the Eigenvalues of the correlation matrix The first PC has an Eigen Value of 3.84083397. This accounts for 42.68% of the variance of the retained 3 PCS from the original 9 variables The 2nd PC has an Eigen value of 2.61219333. Proportionately this accounts for 29.02% of the variance of the retained 3 PCS from the original 9 variables and cumulatively 71.70% of the overall variance, The 3rd PC has an Eigen value of 1.14456755. Proportionately this accounts for 12.72% of the variance of the retained 3 PCS from the original 9 variables and cumulatively 84.42% of the overall variance.
+c) Using the plots based on your reduced dimensionality k from part a) and outputs interpret the first to k PC’s via the outputs (you choose the optimal k). (10 marks)
+Let us interpret the PCs for the group violators score9_logD_group >4 ,score9_logD_group = 2, through the outputs and plots
+The scree plot when we had the original 9 PCs told us what PCs to keep based on the Eigen value (>1)
+Having split the dataset into violators and non-violators and reduced the dimensionality of the set to 3 PCs that account for approximately 90% of the variance , what we can comment on with respect to the Eigenvalues in the Scree plot is the variance that is explained by each PC . PC1 accounts for 56.6%, PC2 accounts for 78.63% and PC3 accounts for 90.64% of the overall variance in the data set
+Profile plot
+PC1 has a strong positive correlation with MW , Hdonors, Hacceptors, PSA, ROT &NATOM, a weak positive correlation with NRING and a strong negative correlation with LogP , LogD
+PC2 has a medium to average positive correlation with MW, LogP, LogD, NATOM , NRING, a weak positive correlation with ROT and weak negative correlation with Hdonors, Hacceptors and PSA.
+PC3 has a medium to average positive correlation with ROT, a weak positive correlation with LogP, LogD and Hdonors , a weak negative correlation with Haccepators and PSA and a strong negative correlation with NRING.
+Component Pattern plots
+The component pattern plots give us the same information about the relationship between the PC and the variables although in 3 different plots.
+
+Score plots
+The score plots are a projection of the linear combination of the variables onto the principal components . There is not much that we can delineate here unlike the groupings of the values in the case of the IRIS dataset where the 1st PC had split the value according to the species .
+There isn’t a clear pattern that emerges since we haven’t grouped the scores by categorical nominal variable Oral status
+Now presenting plots for the data having split by categorical nominal variable oral status
+PC1 appears to be partially splitting the scores for the violator molecules into those that have been orally administered and those that have not been orally administered with the non-oral violators having higher scores on the PC1 scale. If we look at the scatter plot from the perspective of component 2 then the dispersion of violator molecules doesn’t appear to be unevenly distributed unlike the case of PC1.
+PC1 again appears to be partially splitting the scores for the violator molecules into those that have been orally administered and those that have not been orally administered with the non-oral violators having higher scores on the PC1 scale. If we look at the above scatter plot from the perspective of component 3 then the dispersion of violator molecules doesn’t appear to be unevenly distributed unlike the case of PC1.
+There doesn’t appear to be any bias / skewness/ asymmetry if we look at the above scatter plot for violator molecule projections onto the PC2 and PC3 grouped by oral status , both from the POV of PC2 and PC3.
+Loading Plots
+The graph above indicates that the Log D, LogP point in the same direction as PC2 whereas Hdonors and Hacceptors point in the direction of PC1. The variables NRING , NATOM , MW and ROT appear to be projected at the 45-degree angle indicating no bias towards either PC1 or PC2 given the direction in
+which the are pointing . PC1 is orthogonal to LogD and Log P and PC2 is orthogonal to is orthogonal to Hdonors and Hacceptors.
+The graph above indicates that the Log D, LogP point in the same direction as PC3 whereas Hdonors, Hacceptors, MW, NATOM point in the direction of PC1 are orthogonal to PC3. . The variable ROT appear to be projected at the 45-degree angle indicating no bias towards either PC1 or PC2 given the direction in which it is pointing . NRING is pointing in a direction that is opposite to PC3 and this indicates that there could be a strong negative correlation between the two.
+The graph above indicates that LogP, LogD, MW, NATOM are pointing in the direction of PC2 and orthogonal to PC3. Hdonors and ROT are more in the direction of PC2 and NRING is in a diection opposite to PC3 indicating again a strong negative correlation
+Let us interpret the PCs for the group non- violators score9_logD_group <=4 ,score9_logD_group = 1, through the outputs and plots
+The scree plot when we had the original 9 PCs told us what PCs to keep based on the Eigen value (>1)
+Having split the dataset into violators and non-violators and reduced the dimensionality of the set to 3 PCs that account for approximately 90% of the variance , what we can comment on with respect to the Eigenvalues in the Scree plot is the variance that is explained by each PC . For the group non-violators PC1 accounts for 42.68%9(EV- 3.84083397), PC2 accounts for 29.02%(EV- 2.61219333) and PC3 accounts for 12.72%(EV- 1.14456755) of the overall variance in the data set
+Profile plot
+PC1 has a strong positive correlation with LogP , LogD, NATOM, an average positive correlation with ROT and a strong negative correlation with Hdonors, Hacceptors and PSA
+PC2 has a strong positive correlation with MW, Hacceptors and PSA, a medium to average positive correlation with Hdonors, ROT, NATOM and NRING, a weak negative correlation with ROT and weak negative correlation with LogP and LogD.
+PC3 has a strong positive correlation with ROT, a weak positive correlation with LogP, LogD and Hdonors , a weak negative correlation with Haccepators and PSA and a strong negative correlation with NRING.
+Component Pattern plots
+The 3 component pattern plots give us the same information as profile plots .
+Score plots
+The component scores do not provide us with much information unless we group the data by categorical nominal variable Oral status
+Score plots grouped by Oral status
+The non-violator molecules for both that were administered orally and non-orally do not appear to be split by either PC1 or PC2 , i.e. there is no asymmetry / skewness in the way PC1 and PC2 splits the grouping in for molecules of Score9_logD <=4
+The non-violator molecules for both that were administered orally and non-orally do not appear to be split by either PC1 or PC3 , i.e there is no asymmetry / skewness in the way PC1 and PC3 splits the grouping for molecules with Score9_logD <=4
+The non-violator molecules for both that were administered orally and non-orally do not appear to be split by either PC2 or PC3 , i.e. there is no asymmetry / skewness in the way PC2 and PC3 splits the grouping orally or non-orally for molecules with Score9_logD <=4
+Loading Plots
+LogP and LogD are pointing in the direction of PC1 and are orthogonal to PC2 . Hacceptors, PSA and Hdonors are pointing in the direction of PC2 and the rest appear to be in the middle.
+LogD, LogP, NATOM, MW appear to be pointing in the same direction as PC1 and are orthogonal to PC3 whereas Hdonors, PSA & Hacceptors are pointing in a direction opposite to PC1 indicating a negative correlation between the two
+There appears to be a strong positive correlation in the way NATOM, Hdonors, PSA, Hacceptors and MW are pointing in the direction of PC2. The direction in which NRING is pointing indicates a strong negative correlation with PC3
+d) Which of the k PCs are skewed? Use your plots to answer this. (5 marks)
+PC1 out of the 3 PCs appears to be skewed in the way PC1 splits the values for violator molecules into oral and non-oral .
+Question 3: DISCRIM ON 2 GROUPS OF MOLECULES
+1. Prepare the dataset for input for a Discriminant analysis via SAS. (1 mark)
+2. Generate the means, standard deviations, and the variance-covariance matrix of the data for the violators. (1 mark)
+3. Generate the means, standard deviations and the variance-covariance matrix of the data for the non-violators (1 mark)
+4. Produce the correlation matrix and an associated scatterplot of the inputted data for the violators. (1 mark)
+
+5. Produce the correlation matrix and an associated scatterplot of the inputted data for the non-violators. (1 mark)
+6. Using the SAS DISCRIM and your resultant outputs answer the following questions. Use priors "violators"=0.30 "non-violators"=0.70. (10 marks)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7. Is Σ1= Σ2 Justify your answer. (5 marks)
+The two covariance matrices are not the same . This due to different means and individual observations for the whole set of numeric continuous variables (MW-NRING) under the two classes/groups non-violators / violators , leading to different outcomes/values for the individual variance and co-variances for the variables (MW-NRING).
+8. How is a molecule with X0 T = (MW, LogP, LogD, Hdonors, Hacceptors, PSA, ROT, NATOM, NRING) = (445.429, -2.7, -3.28938, 8, 12, 207.27, 9, 55, 3) allocated? i.e. allocates it to either the violators or the non-violators group. (5 marks)
+=VLOOKUP(445.4292,B2:P1280,15,FALSE) = 2 (VIOLATOR group ) score =7 >4
+The entry is in the 2nd row of the dataset (Drug#Card – 116)
+9. Write down the resultant confusion matrix. (5 marks)
+Assuming violators is the positive (True) score9_logD_group>4 target group in our dataset
+We can re-write the confusion matrix as
+Number of observations and Percent classified into score9_logD_group
+Predictions From score9_logD_group (Target ) Violators non-violators Total Violators
+227 (TP)
+124(TN)
+351 non-violators
+58 (FP)
+870(FN)
+928
+0.3
+0.7
+Question 4: STEPWISE DISCRIM ON 4 GROUPS OF MOLECULES
+1. For Question 4 you will need to create the following variable i.e. an interaction term between oral status and score 9_ Log D violation status at 4 levels as defined below: (3 marks)
+Excel formula for column P
+=IF(AND(L2=$R$1,O2=$S$1),"oral_nonviolator",IF(AND(L2=$R$1, O2=$S$2),"oral_violator",IF(AND(L2=$R$2,O2=$S$1),"nonoral_nonviolator",IF(AND(L2=$R$2,O2=$S$2),"nonoral_violator",""))))
+Excel formula for column Q
+=IF(P2=$T$4,1,IF(P2=$T$3,2,IF(P2=$T$2,3,IF(P2=$T$1,4,""))))
+2. Crosstabulate in SAS or otherwise oral by violatory status for the whole group. How many molecules in each of these 4 levels? Create a table or histogram. (2 marks)
+Level 1 – 182 molecules
+Level 2 – 499 molecules
+Level 3 – 169 molecules
+Level 4 – 429 molecules
+3. Run a STEPWISE DISCRIM analysis using the above 4 level grouping variable. (20 marks)
+Step 1
+Variable MW will be entered as its F value of 336.85 is the highest among the variables that have not yet entered and it meets the criteria to stay according to Wilks’ lambda and the associated F approximation with degrees of freedom & Pillai’s trace and the associated F approximation .
+STEP 2
+MW does not meet the criteria to be removed according to Wilks’ lambda and the associated F approximation with degrees of freedom , Pillai’s trace and the associated F approximation and other multivariate statistics like partial R Square AND F-value.
+Since no variables can be removed variable Haccepators enters the model as its F value is the highest among the variables not already in the model and its tolerance and the tolerance of the variables already in the model ( only Mw at this point) is greater than the value specified in the SINGULAR= option. The tolerance is computed by using the total-sample correlation matrix. It is customary to compute tolerance by using the pooled within-class correlation matrix
+STEP 3
+MW & Haccepators do not meet the criteria to be removed according to Wilks’ lambda and the associated F approximation with degrees of freedom , Pillai’s trace and the associated F approximation and other multivariate statistics like partial R Square AND F-value.
+Since no variables can be removed variable LogP enters the model as its F value is the highest among the variables that have not entered the model and its tolerance as well as the tolerance of the variables already in the model is greater than the value specified in the SINGULAR= option.
+STEP 4
+MW , LogP & Haccepators do not meet the criteria to be removed according to Wilks’ lambda and the associated F approximation with degrees of freedom , Pillai’s trace and the associated F approximation and other multivariate statistics like partial R Square AND F-value.
+Since no variables can be removed variable ROT enters the model as its F value is the highest among the variables that have not entered the model and its tolerance as well as the tolerance of the variables already in the model is greater than the value specified in the SINGULAR= option.
+STEP 5
+MW , LogP Haccepators & ROT do not meet the criteria to be removed according to Wilks’ lambda and the associated F approximation with degrees of freedom , Pillai’s trace and the associated F approximation and other multivariate statistics like partial R Square AND F-value.
+Since no variables can be removed variable NRING enters the model as its F value is the highest among the variables that have not entered the model and its tolerance as well as the tolerance of the variables already in the model is greater than the value specified in the SINGULAR= option.
+STEP 6
+MW , LogP Haccepators , ROT & NRING do not meet the criteria to be removed according to Wilks’ lambda and the associated F approximation with degrees of freedom , Pillai’s trace and the associated F approximation and other multivariate statistics like partial R Square AND F-value.
+Since no variables can be removed variable PSA enters the model as its F value is the highest among the variables that have not entered the model and its tolerance as well as the tolerance of the variables already in the model is greater than the value specified in the SINGULAR= option.
+STEP 7
+MW , LogP ,PSA, Haccepators , ROT & NRING do not meet the criteria to be removed according to Wilks’ lambda and the associated F approximation with degrees of freedom , Pillai’s trace and the associated F approximation and other multivariate statistics like partial R Square AND F-value.
+Since no variables can be removed variable PSA enters the model as its F value is the highest among the variables that have not entered the model and its tolerance as well as the tolerance of the variables already in the model is greater than the value specified in the SINGULAR= option.
+STEP 8
+MW , LogP , LogD, PSA, Haccepators , ROT & NRING do not meet the criteria to be removed according to Wilks’ lambda and the associated F approximation with degrees of freedom , Pillai’s trace and the associated F approximation and other multivariate statistics like partial R Square AND F-value.
+Since no variables can be removed variable Hdonors enters the model as its F value is the highest among the variables that have not entered the model and its tolerance as well as the tolerance of the variables already in the model is greater than the value specified in the SINGULAR= option.
+STEP 9
+LogP , LogD, PSA, Haccepators , ROT & NRING EXCEPT MW do not meet the criteria to be removed according to Wilks’ lambda and the associated F approximation with degrees of freedom , Pillai’s trace and the associated F approximation and other multivariate statistics like partial R Square AND F-value. This effectively means MW contributes least to the discriminatory power of the model as measured by Wilks’ lambda and hence it is removed. Notice that it has the least Partial R square as well as F value
+Since variable MW has been removed no new variable can enter the model.
+STEP 10
+All variables in the model meet the criterion to stay and none of the other variables meet the criterion to enter, the stepwise selection now process stops. Stepwise selection is the default method of variable selection.
+4. Which variables best discriminate the 4 oral by violatory groups/classes? See notes on STEPDISC below and extra SAS notes (Week 10). (10 marks)
+In discriminant analysis, Wilk’s lambda tests how well each level of independent variable contributes to the model. The scale ranges from 0 to 1, where 0 means total discrimination, and 1 means no discrimination. Each independent variable is tested by putting it into the model and then taking it out — generating a Λ statistic. The significance of the change in Λ is measured with an F-test; if the F-value is greater than the critical value, the variable is kept in the model. This stepwise procedure is usually performed using software like Minitab, R, or SPSS. The following SPSS output shows which variables (from a list of a dozen or more) were kept in using this procedure. (Wilks’ Lambda: Simple Definition, 2015)
+Wilks’ Lambda and the associated F approximation with degrees of freedom and Pr < F , the associated probability level after the selected variable has been entered or removed. Wilks’ lambda is the likelihood ratio statistic for testing the hypothesis that the means of the classes on the selected variables are equal in the population (see the “Multivariate Tests” section in Chapter 3, “Introduction to Regression Procedures”). Lambda is close to zero if any two groups are well separate (Chapter 60 The STEPDISC Procedure, 1999)
+According to the above definitions the lambda value of Wilks lambda needs to be close to closer to 0 than the other variables in order to be considered a discriminating variable. Hence the only choice is Hdonors with a lambda value of 0.40025519
+5. Write a clear description of your conclusions include the SAS code and outputs. (10 marks)
+We can conclude the STEPDISC procedure by running the following code in SAS
+proc discrim data=work.oralviolatorstatus;
+class Oral_score;
+var &_stdvar;
+run;
+class Species; var &_stdvar;
+run;
+In the given drug bank dataset , measurements for 9 different continuous variables were provided which helped delineate whether a molecule administered orally / non-orally could be classified as a non-violator / violator in the basis of a Score9_logD.
+This dataset has a total sample size of 1279 observations with 182 observations belonging to the oral_violator grouping/class , 499 observations belonging to the oral_nonviolator grouping/class, 169 observations belonging to the nonoral_violator grouping /class and 429 belonging to the nonoral_nonviolator class.
+It appears from the Generalized Squared Distance to Oral_score that the distance between group 3 and 4 is the maximum indicating the difference in variance between these classes would be the maximum,
+The linear discriminant function gives the coefficients for the discriminant function of each class. These are the linear combinations of the responses that “define” each of the violatory classes . A constant or intercept term is also included.
+Finally, we have the confusion matrix from the STEPDISC/DISCRIM procedure assuming equal priors. We can change the priors according to the distribution of the classes in the dataset like we did in the non-violators / violators case earlier (0.7 /0.3)
+The total error rate from the linear discriminant function is quite large at 0.4096
+References
+Chapter 60 The STEPDISC Procedure. (1999). In N. Cary, SAS Institute Inc.,SAS/STAT ® User’s Guide (pp. 3155-3173).
+Cliff, N. (1988). The eigenvalues-greater-than-one rule and the reliability of components. American Psychological Association., 276-279.
+Wilks’ Lambda: Simple Definition. (2015, March 4). Retrieved from Statistics How To: https://www.statisticshowto.com/wilks-lambda/
+Appendix – for code
+Question 1
+/** Import the VIOLATOR molecules XLSX file. **/
+PROC IMPORT DATAFILE="/home/u47261585/sasuser.v94/Assignment 2/Violator.xlsx"
+OUT=WORK.Ass2_violator
+DBMS=XLSX
+REPLACE;
+RUN;
+/** Print the results. **/
+PROC PRINT DATA=WORK.Ass2_violator; RUN;
+ods graphics on;
+proc princomp data= work.Ass2_violator n=3 /* use N= option to specify number of PCs */
+STD /* optional: stdize PC scores to unit variance */
+out=PCOut /* only needed to demonstate corr(PC, orig vars) */
+plots=(scree profile pattern score);
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING ; /* or use _NUMERIC_ */
+ID ; /* use blank ID to avoid labeling by obs number */
+ods output Eigenvectors=EV1; /* to create loadings plot, output this table */
+run;
+proc factor data= work.Ass2_violator simple corr;
+run;
+proc factor data=work.Ass2_violator N=3 /* use N= option to specify number of PCs */
+method=principal
+plots=(initloadings(vector));
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING; /* or use _NUMERIC_ */
+run;
+title "Score Plot";
+title2 "Observations Projected onto PC1 and PC2";
+proc sgplot data=PCOut aspect=1;
+scatter x=Prin1 y=Prin2 / group= oral_status;
+xaxis grid label="Component 1 (56.60%)";
+yaxis grid label="Component 2 (22.02%)";
+run;
+title "Score Plot";
+title2 "Observations Projected onto PC1 and PC3";
+proc sgplot data=PCOut aspect=1;
+scatter x=Prin1 y=Prin3 / group= oral_status;
+xaxis grid label="Component 1 (56.60%)";
+yaxis grid label="Component 3 (12.01%)";
+run;
+title "Score Plot";
+title2 "Observations Projected onto PC2 and PC3";
+proc sgplot data=PCOut aspect=1;
+scatter x=Prin2 y=Prin3 / group= oral_status;
+xaxis grid label="Component 2 (22.02%)";
+yaxis grid label="Component 3 (12.01%)";
+run;
+/* what are the correlations between PCs and orig vars? */
+proc corr data=PCOUT noprob nosimple;
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+with Prin1-Prin3;
+run;
+/** Import the NON-VIOLATOR molecules XLSX file. **/
+PROC IMPORT DATAFILE="/home/u47261585/sasuser.v94/Assignment 2/Non violator.xlsx"
+OUT=WORK.Ass2_Nonviolator
+DBMS=XLSX
+REPLACE;
+RUN;
+/** Print the results. **/
+PROC PRINT DATA=WORK.Ass2_Nonviolator; RUN;
+ods graphics on;
+proc princomp data= work.Ass2_Nonviolator n=3 /* use N= option to specify number of PCs */
+STD /* optional: stdize PC scores to unit variance */
+out=PCOut /* only needed to demonstate corr(PC, orig vars) */
+plots=(scree profile pattern score);
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING ; /* or use _NUMERIC_ */
+ID ; /* use blank ID to avoid labeling by obs number */
+ods output Eigenvectors=EV2; /* to create loadings plot, output this table */
+run;
+proc factor data= work.Ass2_Nonviolator simple corr;
+run;
+proc factor data=work.Ass2_Nonviolator N=3 /* use N= option to specify number of PCs */
+method=principal
+plots=(initloadings(vector));
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING; /* or use _NUMERIC_ */
+run;
+title "Score Plot";
+title2 "Observations Projected onto PC1 and PC2";
+proc sgplot data=PCOut aspect=1;
+scatter x=Prin1 y=Prin2 / group= oral_status;
+xaxis grid label="Component 1 (42.68%)";
+yaxis grid label="Component 2 (29.02%)";
+run;
+title "Score Plot";
+title2 "Observations Projected onto PC1 and PC3";
+proc sgplot data=PCOut aspect=1;
+scatter x=Prin1 y=Prin3 / group= oral_status;
+xaxis grid label="Component 1 (42.68%)";
+yaxis grid label="Component 3 (12.72%)";
+run;
+title "Score Plot";
+title2 "Observations Projected onto PC2 and PC3";
+proc sgplot data=PCOut aspect=1;
+scatter x=Prin2 y=Prin3 / group= oral_status;
+xaxis grid label="Component 2 (29.02%)";
+yaxis grid label="Component 3 (12.01%)";
+run;
+/* what are the correlations between PCs and orig vars? */
+proc corr data=PCOUT noprob nosimple;
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+with Prin1-Prin3;
+run;
+Question 2
+title 'Drug Bank dataset for Assignment 2 (Question 2)';
+%let _stdvar = ;
+proc stepdisc data=work.ass2_drugbankdata bsscp tsscp;
+class oral_status;
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+run;
+proc means data=work.ass2_drugbankdata;
+run;
+title 'Violators (Question 2)';
+%let _stdvar = ;
+proc stepdisc data=work.ass2_violator bsscp tsscp;
+class oral_status;
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+run;
+proc means data=work.ass2_violator;
+run;
+PROC CORR DATA=work.ass2_violator;
+VAR MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+RUN;
+proc sgscatter data=work.ass2_violator;
+matrix MW--NRING /group= oral_status diagonal=(histogram kernel);
+run;
+title 'Non-violators';
+%let _stdvar = ;
+proc stepdisc data=work.ass2_nonviolator bsscp tsscp;
+class oral_status;
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+run;
+proc means data=work.ass2_nonviolator;
+run;
+PROC CORR DATA=work.ass2_nonviolator;
+VAR MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+RUN;
+proc sgscatter data=work.ass2_nonviolator;
+matrix MW--NRING /group= oral_status diagonal=(histogram kernel);
+run;
+/** QUESTION 3 Import the NON-VIOLATOR molecules XLSX file. **/
+PROC IMPORT DATAFILE="/home/u47261585/sasuser.v94/Assignment 2/MATH1309 Drug Bank DATA set PRIORS.xlsx"
+OUT= WORK.Ass2_03P6_priors
+DBMS=XLSX
+REPLACE;
+RUN;
+/** Print the results. **/
+PROC PRINT DATA=WORK.Ass2_03P6_priors; RUN;
+title 'PROC DISICRIM - Priors Non-Violators/Violators';
+title2 'Using Quadratic Discriminant Function';
+proc discrim data=WORK.Ass2_03P6_priors outstat=drugstat
+wcov pcov method=normal pool=test
+distance anova manova listerr crosslisterr;
+class score9_logD_group;
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+priors 'violators' =0.3 'non-violators'=0.7;
+run;
+proc print data=drugstat;
+title2 'Output Discriminant Statistics';
+run;
+/** Import the oral violator status XLSX file. **/
+PROC IMPORT DATAFILE="/home/u47261585/sasuser.v94/Assignment 2/MATH1309 Drug Bank DATA set for Assignment 2 Q4.xlsx"
+OUT= WORK.oralviolatorstatus
+DBMS=XLSX
+REPLACE;
+RUN;
+/** Print the results. **/
+PROC PRINT DATA=WORK.oralviolatorstatus; RUN;
+Proc freq data=WORK.oralviolatorstatus;
+Tables Violatory_status*Oral_score;
+Run;
+/** QUESTION 4 Import the NON-VIOLATOR molecules XLSX file. **/
+title 'STEPWISE DISCRIMINANT ANALYSIS USING ORAL_SCORE AS CLASS';
+%let _stdvar = ;
+proc stepdisc data=WORK.oralviolatorstatus;
+class Oral_score;
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+run;
+proc candisc data=work.oralviolatorstatus out=outcan distance anova;
+class Oral_score;
+var MW LogP LogD Hdonors Hacceptors PSA ROT NATOM NRING;
+run;
+proc discrim data=work.oralviolatorstatus;
+class Oral_score;
+var &_stdvar;
+run;
