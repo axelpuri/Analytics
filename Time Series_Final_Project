@@ -1,0 +1,556 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, cache=TRUE, message=FALSE, warning=FALSE, 
+                      error=FALSE, fig.cap = " ")
+```
+
+
+#### 1.4 Data Preprocessing
+
+
+In this report several R packages were require for the analysis which included:
+•	tidyr
+•	dplyr
+•	TSA
+•	readr
+•	tseries
+•	fUnitRoots
+•	forecast
+•	lmtest
+•	FitAR
+•	zoo
+•	lubridate
+
+Additionally two helper functions residual.analysis and sort.score were called upon as to assist in the residual analysis and the model selection components of this report respectively.
+
+```{r}
+#Loading appropriate libraries  
+library(tidyr)
+library(dplyr)
+library(TSA)
+library(readr)
+library(tseries)
+library(fUnitRoots)
+library(forecast)
+library(lmtest)
+library(FitAR)
+library(zoo)
+library(lubridate)
+
+
+
+```
+
+To begin the compiled Beijing air quality dataset was read and had its data type verified. The output from this verification revealed the data was in a data frame format. 
+
+```{r}
+#Loading and preparing compiled dataset
+Beijing_PM25_data <- read.csv("Beijing_PM25_data.csv")
+colnames(Beijing_PM25_data) <- c("Date","PM2.5")
+Beijing_PM25_data <- Beijing_PM25_data[0:2333,]
+Beijing_PM25_data
+class(Beijing_PM25_data)
+```
+
+The next step was to address the missing values present in the dataset through the implementation of imputation. A conservative approach was followed with the missing values being replaced by the mean. This imputation approach does potentially give rise to an artificially induced reduction within the variation of the data. However, this reduction should be minimal since the dataset contained very few missing values.
+
+With all missing values handled, the dataset’s type was converted into the time series format that is required for further analysis. 
+
+```{r}
+#Imputing missing values with the mean
+Beijing_PM25_data$PM2.5[is.na(Beijing_PM25_data$PM2.5)] <- mean(Beijing_PM25_data$PM2.5, na.rm=TRUE)
+
+#Converting dataset to a time series
+Beijing_ts = ts(as.vector(Beijing_PM25_data$PM2.5), start=c(2014,1,1),frequency=365.25)
+
+plot(Beijing_ts, main='Time Series Plot for Daily Beijing Air Quality', ylab='Air Quality PM 2.5(micrometer)')
+
+#Creating a Q-Q normality plot for the daily timeseries 
+qqnorm(Beijing_ts)
+qqline(Beijing_ts, col = 2)
+```
+
+The final pre-processing step required was the conversion of the daily time series to a monthly one. This conversion was achieved by assigning each month with the mean of the corresponding daily values. The new monthly based dataset was subsequentially formatted as a time series. 
+
+```{r}
+Beijing_PM25_data$Date <- as.Date( Beijing_PM25_data$Date, format = ("%d/%m/%Y"))
+
+#Aggregating the daily observation as to convert the dataset to monthly
+Beijing_monthly <- Beijing_PM25_data %>% mutate(month = month(Date),year = year(Date)) %>%group_by(month, year) %>% summarise(PM2.5_monthly = mean(PM2.5))
+Beijing_monthly <- Beijing_monthly%>% unite(date, year, month, sep="/")
+
+#Convert to date format and then make time series
+Beijing_monthly$date <- as.Date(as.yearmon(Beijing_monthly$date))
+Beijing_monthly %>% arrange(Beijing_monthly$date)
+Beijing_ts_monthly = ts(as.vector(Beijing_monthly$PM2.5_monthly), start=c(2014,1),frequency=12)
+```
+
+#### 1.5 Exploratory Data Analysis
+
+
+```{r}
+#Plotting a time series plot of the monthly dataset
+plot(Beijing_ts_monthly, main='Time Series Plot for Monthly Beijing Air Quality', ylab='Air Quality PM 2.5(micrometer)')
+points(y=Beijing_ts_monthly,x=as.vector(time(Beijing_ts_monthly)),
+pch=as.vector(season(Beijing_ts_monthly)))
+```
+
+The above time series plot reveals five significant characteristics of the dataset.  
+
+•	Trend: There appears to be no clear trend in the plot with the mean of the series appearing to remain relatively constant over time. An argument could be made that there is a decreasing trend or intervention present from the end of 2017 through to 2018. However, this deviation from mean of the series is only minor and additionally the time series appears to have recentred itself around the mean by 2019.
+
+•	Variance: The plot displays significant signs of volatility within the variance. This volatility is highlighted by contrast between the significantly large variation observed in the years of 2014, 2019 and 2020 and the relatively subdued variation recorded from 2016 through to the end of 2017. Additionally, the remaining two years portray a more moderate level of variation which further adds to the suggestion that there is instability present in the variance of the series. 
+
+•	Seasonality: At a glance the above series appears to have an absence of any significant patterns or trends that could be interpreted as seasonality. Using the monthly labels to take a deeper look at the series does not change this view. Most of the same months appear to record seemingly random levels of PM2.5 with there being no apparent trends between corresponding months. 
+•	Moving Average Component: The series contains behaviour indicative of a moving average component with the series rising and falling around the mean. This indicative oscillating behaviour centered around the mean is seen throughout the entire series.
+
+•	Autoregressive Component: The series also contains several clusters which suggests that there is a dependency between neighbouring observations. This dependency in the time variable is indicative of autoregression and hence there seems to be significant evidence of the series containing an autoregressive component
+
+```{r}
+#Plotting a lag scatter plot for the montly dataset
+plot(y=Beijing_ts_monthly,x=zlag(Beijing_ts_monthly),ylab='Air Quality PM 2.5(micrometer)', xlab='Previous Year Air Quality PM 2.5(micrometer)',
+main = "Scatter plot of PM 2.5 particles vs their lags", col=c("purple"))
+
+#Finding the correlation between neighboring months PM2.5 levels 
+y = Beijing_ts_monthly
+x = zlag(Beijing_ts_monthly)
+index = 2:length(x)
+cor(y[index],x[index])
+```
+
+The above lag plot strengthens several points of evidence observed in the time series plot. First the lag plot shows no definitive signs of seasonality with no cycles or repeating patterns being observed between lagged observations. Secondly the plot seems to present a seemingly weak positive relationship between lagged observation, however its not entirely clear. Computing the correlation between the lags obtains a result of 0.19 which confirms the weak positive relationship observed in the lag plot. This correlation weakly suggests that there is an autoregressive component present in the series.
+
+```{r}
+#Plotting ACF and PACF plots of the monthly timeseries
+
+
+acf_Beijing_ts_monthly <- acf(Beijing_ts_monthly, plot = FALSE)
+
+par(mar=c(5,3,1.5,1.5) + 0.1 )
+  
+plot(acf_Beijing_ts_monthly ,  adj=0.5)
+
+title( "ACF Beijing monthly time series  ", line= 0.5)
+
+
+
+pacf_Beijing_ts_monthly <- pacf(Beijing_ts_monthly ,plot = FALSE)
+
+par(mar=c(5,3,1.5,1.5) + 0.1 )
+  
+plot(pacf_Beijing_ts_monthly ,  adj=0.5)
+
+title( "PACF Beijing monthly time series  ", line= 0.5)
+```
+
+The ACF and PACF plots further solidifies the observations made about the autoregressive and moving average behaviour in the previous two plots. Both the ACF and PACF plots portray no discernible patterns with both only indicting significant autocorrelation at lag 6 and lag 7. The presence of these two significant lags in both plots suggest that there is an autoregressive and moving average component present in the series. 
+The lack of a decaying pattern in the ACF and an absence in significance of lag 1 in the PACF means that the two plots provided no further information on the stationarity of the series. To gain further insight into the stationarity of the series, an Augmented Dickey-Fuller test will be required. 
+
+
+```{r}
+#Performing ADF test on monthly timeseries
+order = ar(diff(Beijing_ts_monthly))$order
+adfTest(Beijing_ts_monthly, lags = order,  title = NULL,description = NULL)
+```
+
+The Augmented Dickey-Fuller test resulted in a p-value of 0.59 suggesting that there is insignificant evidence to reject the null hypothesis of the series being non-stationary.
+
+```{r}
+#Creating a Q-Q normality plot for the timeseries 
+qqnorm(Beijing_ts_monthly)
+qqline(Beijing_ts_monthly, col = 2)
+```
+
+In the above Q-Q Normality plot the observations appear to fall in a relatively linear fashion before deviating at the both the lower and higher extremities of the theoretical quantiles. The falling of observation above the desired linear trend for both lower and higher theoretical quantiles is indicative of a positive skew. This would suggest that the series is not normally distributed and hence will need to be addressed in the data transformation section of this report.
+To gain more conclusive insight the Shapiro-Wilk’s test will also be performed on the data.
+
+```{r}
+#Performing Shapiro-Wilk test 
+shapiro.test(Beijing_ts_monthly)
+```
+
+The p-value outputted by the Shapiro-Wilk test is miniscule with a value of 9e-04 suggesting that the null hypothesis of normality should be rejected. The addition of the outcome of the Shapiro-Wilk tests further validates the observations made from the Q-Q Normality test and hence there is conclusive evidence that the data is not normally distributed.
+
+Summarising the above information can allow for several important conclusions. First the presence of the instability in the variance as well as the result of the Augmented Dickey-Fuller test, suggests that the series is non-stationary. Secondly the time series appears to be devoid of seasonality and hence no seasonality will be required to be captured by the model. Thirdly the presence of autoregressive behaviour suggests that any trend present in the series will be stochastic rather than deterministic in nature. The above three conclusions suggest that an ARIMA class model will prove the most appropriate in fitting the series. Finally, the non-normality and instability in variance of the dataset will need to be addressed through the use of a data transformation. 
+
+#### 1.6 Data Transformation
+
+To stabilize the variance and normalise the data a possible approach involves implementing either a Box-Cox or Log transformation. The Box-Cox transformation seems the more appropriate method, since the variation seems to shift randomly with time rather than follow an exponential pattern. 
+
+```{r}
+#Determining value of lambda
+Beijing_transform = BoxCox.ar(Beijing_ts_monthly, method = "yule-walker")
+Beijing_transform$ci
+```
+
+Referring to the above likelihood plot of the 95% confidence interval for the value of lambda, reveals that ideally the value of lambda should fall between -1.2 and 0.4. The midpoint of -0.4 shall be used as the value of lambda for the Box-Cox transformation.
+
+```{r}
+#Applying Box-Cox transformation
+lambda = -0.4 # 0.001
+BC_Beijing = (Beijing_ts_monthly^lambda-1)/lambda
+plot(BC_Beijing, main="Time Series for Transformed eggs data", ylab='Egg deposition transformed')
+```
+
+The above times series plot of the Box-Cox transformed data has appeared to have significantly stabilised the variance. There does appear to still be volatility to the variance but it is far less pronounced than what it was for the untransformed series. To confirm the observations obtained from the plot, an Augmented Dickey-Fuller test shall also be performed looking to see whether any improvement has been achieved with regards to the stationarity of the series. 
+
+The p-value of the Augmented Dickey-Fuller test has also experienced significant improvement after the implementation of the Box-Cox transformation with the p-value being reduced from 0.59 to 0.075. The transformed data still fails the Augmented Dickey-Fuller test and hence is also non-stationarity, however the significant improvement in p-value suggests that the transformed series is far closer to being stationary when compared to the untransformed series. This would appear to also support the conclusion made in the time series plot that the variation has seen a significant improvement in stability.
+
+```{r}
+#Performing ADF test on the transformed time series
+adf.test(BC_Beijing)
+```
+
+
+
+```{r}
+#Testing normality of transformed data
+qqnorm(BC_Beijing) # Data looks more normal
+qqline(BC_Beijing, col = 2)
+
+#Performing the Shapiro-Wilk test
+shapiro.test(BC_Beijing)
+```
+
+The Q-Q Normality plot for the Box-Cox transformed series has also shown significant improvement in comparison to that of the untransformed series. All of the observations appear to fall along the desired linear trend with insignificant deviation from it. This would suggest the observation are now normally distributed with each other. 
+
+Due to the importance of the normality assumption for statistically analysis, the Shapiro-Wilk’s test will be also performed as to validate the normality. The p-value outputted by the Shapiro-Wilk test is ???????????(I added the code, i just need some one to run and add it here for me) suggesting that the null hypothesis of normality fails to be rejected. The addition of the outcome of the Shapiro-Wilk provides conclusive evidence that the data is normally distributed.
+
+The significant improvement in the stability of variance and the correction of the normal distribution of the series suggests that the Box-Cox transformed data should be used in favour of the original data for all sub-sequential analysis. 
+
+## 2. Model Specification
+
+
+#### 2.1 Differencing
+
+```{r}
+#Plotting first difference of the Box-Cox time series
+diff1=diff(BC_Beijing)
+plot(diff1,type='o',ylab='PM 2.5 particles', main='First Difference time series')
+
+```
+
+```{r}
+#Performing ADF test on the first difference of the Box-Cox time series
+adf.test(diff1)
+```
+Series has now achieved stationarity
+
+
+#### 2.2 AR and MA Components
+```{r}
+#ACF and PACF of the first difference of the Box-Cox time series
+par(mfrow=c(1,2))
+
+acf(diff1, main='ACF of first difference')
+
+pacf_diff1 <- pacf(diff1,plot = FALSE)
+
+par(mar=c(5,3,1.5,1.5) + 0.1 )
+  
+plot(pacf_diff1 ,  adj=0.5)
+
+title( "PACF of first difference  ", line= 0.5)
+
+pacf(diff1, main='PACF of first difference')
+```
+
+```{r}
+#Creating EACF plot of the first difference of the Box-Cox time series
+eacf(diff1, ar.max=8, ma.max=8)
+```
+
+```{r}
+#Creating BIC plot of the first difference of the Box-Cox time series
+res=armasubsets(y=diff1,nar=6 ,nma=6,y.name='test', ar.method='ols')
+plot(res)
+title('BIC Table for Model Selection', line = 6)
+```
+
+#### 2.3 Model Candidacy
+ARIMA(0,1,1), ARIMA(1,1,1), ARIMA(0,1,2), ARIMA(2,1,2), ARIMA(1,1,3), ARIMA(2,1,3), ARIMA(3,1,3) (4,1,3), ARIMA (4,1,4) , ARIMA (5,1,3) ,ARIMA (5,1,4) 
+
+
+# ARIMA(0,1,1)
+
+```{r}
+
+model_011_css = arima(BC_Beijing,order=c(0,1,1),method='CSS')
+coeftest(model_011_css)
+
+```
+
+```{r}
+model_011_ml = arima(BC_Beijing,order=c(0,1,1),method='ML')
+coeftest(model_011_ml)
+```
+
+#ARIMA(0,1,2)
+
+```{r}
+model_012_css = arima(BC_Beijing,order=c(0,1,2),method='CSS')
+coeftest(model_012_css)
+
+```
+
+```{r}
+model_012_ml = arima(BC_Beijing,order=c(0,1,2),method='ML')
+coeftest(model_012_ml)
+```
+#ARIMA(1,1,1)
+
+```{r}
+model_111_css = arima(BC_Beijing,order=c(1,1,1),method='CSS')
+coeftest(model_111_css)
+
+```
+
+```{r}
+model_111_ml = arima(BC_Beijing,order=c(1,1,1),method='ML')
+coeftest(model_111_ml)
+```
+#ARIMA(1,1,3)
+```{r}
+model_113_css = arima(BC_Beijing,order=c(1,1,3),method='CSS')
+coeftest(model_113_css)
+
+```
+
+#ARIMA(2,1,1)
+```{r}
+model_211_css = arima(BC_Beijing,order=c(2,1,1),method='CSS')
+coeftest(model_211_css)
+
+```
+
+```{r}
+model_211_ml = arima(BC_Beijing,order=c(2,1,1),method='ML')
+coeftest(model_211_ml)
+```
+#ARIMA(2,1,2)
+```{r}
+model_212_css = arima(BC_Beijing,order=c(2,1,2),method='CSS')
+coeftest(model_212_css)
+
+```
+
+#ARIMA(2,1,3)
+```{r}
+model_213_css = arima(BC_Beijing,order=c(2,1,3),method='CSS')
+coeftest(model_213_css)
+
+```
+
+```{r}
+model_213_ml = arima(BC_Beijing,order=c(2,1,3),method='ML')
+coeftest(model_213_ml)
+```
+#ARIMA(3,1,1)
+```{r}
+model_311_css = arima(BC_Beijing,order=c(3,1,1),method='CSS')
+coeftest(model_311_css)
+
+```
+
+```{r}
+model_311_ml = arima(BC_Beijing,order=c(3,1,1),method='ML')
+coeftest(model_311_ml)
+```
+
+#ARIMA(3,1,3)
+```{r}
+model_313_css = arima(BC_Beijing,order=c(3,1,3),method='CSS')
+coeftest(model_313_css)
+
+```
+
+```{r}
+model_313_ml = arima(BC_Beijing,order=c(3,1,3),method='ML')
+coeftest(model_313_ml)
+```
+#ARIMA(4,1,3)
+```{r}
+model_413_css = arima(BC_Beijing,order=c(4,1,3),method='CSS')
+coeftest(model_413_css)
+
+```
+
+```{r}
+model_413_ml = arima(BC_Beijing,order=c(4,1,3),method='ML')
+coeftest(model_413_ml)
+```
+
+````{r}
+model_413_css = arima(BC_Beijing,order=c(4,1,3),method='CSS')
+coeftest(model_413_css)
+
+````
+
+````{r}
+model_513_ml = arima(BC_Beijing,order=c(5,1,3),method='ML')
+coeftest(model_513_ml)
+
+````
+
+````{r}
+
+model_513_css = arima(BC_Beijing,order=c(5,1,3),method='CSS')
+coeftest(model_513_css)
+
+````
+
+
+````{r}
+model_514_css = arima(BC_Beijing,order=c(5,1,4),method='CSS')
+coeftest(model_514_css)
+
+````
+
+````{r}
+model_514_ml = arima(BC_Beijing,order=c(5,1,4),method='ML')
+coeftest(model_514_ml)
+
+````
+
+Checking for overfitting - 
+
+````{r}
+
+model_614_ml = arima(BC_Beijing,order=c(6,1,4),method='ML')
+coeftest(model_614_ml)
+
+````
+
+````{r}
+
+model_515_ml = arima(BC_Beijing,order=c(5,1,5),method='ML')
+coeftest(model_515_ml)
+
+````
+
+
+````{r}
+model_514_ml = arima(BC_Beijing,order=c(5,1,4),method='ML')
+
+
+````
+
+Significant values of p for all AR and MA components:
+ARIMA(0,1,1) using both ML abd CSS
+ARIMA(2,1,2) using CSS
+ARIMA(2,1,3) using ML
+ARIMA(3,1,3) using both ML and CSS
+ARIMA(4,1,1) using css
+
+```{r}
+sort.score <- function(x, score = c("bic", "aic")){
+  if (score == "aic"){
+    x[with(x, order(AIC)),]
+  } else if (score == "bic") {
+    x[with(x, order(BIC)),]
+  } else {
+    warning('score = "x" only accepts valid arguments ("aic","bic")')
+  }
+}
+
+```
+
+```{r}
+sort.score(AIC(model_011_ml,model_313_ml,model_413_ml,model_513_ml,model_514_ml), score = "aic")
+
+```
+
+```{r}
+sort.score(BIC(model_011_ml,model_313_ml,model_413_ml,model_513_ml,model_514_ml), score = "bic" )
+
+```
+
+#RESIDUAL ANALYSIS
+
+```{r}
+residual.analysis(model_011_ml)
+```
+
+
+
+```{r}
+
+```
+
+```{r}
+residual.analysis(model_213_ml)
+```
+
+```{r}
+residual.analysis(model_313_ml) #Gives better results as compared to css
+```
+
+```{r}
+residual.analysis(model_411_css)
+```
+
+
+
+Reject 011, 212 and seasonal model as residuals acf and pacf have significant lags.
+Reject 411 as it has a lesser normality (p=0.2) as compared to others
+
+
+
+#Over fitting
+```{r}
+model_214_ml = arima(BC_Beijing, order = c(2,1,4), method = 'ML')
+coeftest(model_214_ml)
+model_214_css = arima(BC_Beijing, order = c(2,1,4), method = 'CSS')
+coeftest(model_214_css)
+AIC(model_214_ml)
+BIC(model_214_ml)
+```
+
+AIC suggest model ARIMA(2,1,3) and BIC suggest model ARIMA(0,1,1). Models ARIMA(0,1,2), ARIMA(3,1,3), ARIMA(1,1,3), ARIMA(2,1,2) was found to be overfitting earlier in the analysis with insignifcant coefficients and higher AIC and BIC values.
+Upon further investigation, it was found that model ARIMA(2,1,4) has significant coefficents but was found to have higher AIC and BIC values than ARIMA(2,1,3). Therefore, is an overfitting model for ARIMA(2,1,4).
+
+#Residual Analysis
+#ARIMA(2,1,3)
+```{r}
+par(mar=c(4,4,4,2),mfrow=c(3,2),cex.main=0.8, cex.lab=0.8, cex.axis=0.8)
+residuals_513 = residuals(model_513_ml)
+plot(residuals_513, type = 'o', ylab = "Standardized Residuals", 
+     main = " Time series of plot standardized residuals ")
+abline(h=0)
+hist(residuals_513, main = "Histogram of standardized residuals")
+qqnorm(residuals_513)
+qqline(residuals_513, col = 2)
+acf(residuals_513, main = "ACF of standardized residuals")
+pacf(residuals_513, main = " PACF of standardized residuals")
+
+```
+
+```{r}
+shapiro.test(residuals_513)
+```
+
+There are no obvious trend and relative constant variance in the residuals. Normality can be assumed from QQplot, shapiro-wilk test as p > 0.05 and the histogram appears to be relatively symmetrical. There are no significant lags found in either ACF and PACF. 
+
+```{r}
+par(mar=c(4,4,4,2),mfrow=c(3,2),cex.main=0.8, cex.lab=0.8, cex.axis=0.8)
+residuals_514 = residuals(model_514_ml)
+plot(residuals_011, type = 'o', ylab = "Standardized Residuals", 
+     main = " Time series of plot standardized residuals ")
+abline(h=0)
+hist(residuals_514, main = "Histogram of standardized residuals")
+qqnorm(residuals_514)
+qqline(residuals_514, col = 2)
+acf(residuals_514, main = "ACF of standardized residuals")
+pacf(residuals_514, main = " PACF of standardized residuals")
+```
+There are no obvious trend and relative constant variance in the residuals. Normality can be assumed from QQplot, shapiro-wilk test p > 0.05 and the histogram appears to be relatively symmetrical. However, there are significant lags found in ACF and PACF at lags 6 and 7. Therefore, failing to pass the residual test, and the better model to be used to forecast is model ARIMA(2,1,3).
+
+```{r}
+fit = Arima(Beijing_ts_monthly, order=c(5,1,4))
+Beijing_monthly.forecast = forecast(fit,h = 10)
+plot(Beijing_monthly.forecast,  main='Monthly Beijing Air Quality forecasted for 10 months', ylab='Air Quality PM 2.5(micrometer)')
+points(y=Beijing_ts_monthly,x=as.vector(time(Beijing_ts_monthly)),
+pch=as.vector(season(Beijing_ts_monthly)))
+
+```
+
