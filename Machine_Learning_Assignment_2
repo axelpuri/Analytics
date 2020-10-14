@@ -1,0 +1,500 @@
+ASSIGNMENT 2 - MACHINE LEARNING
+HONOUR CODE:
+
+I solemnly swear that I have not discussed my assignment solutions with anyone in any way and the solutions I am submitting are my own personal work.
+
+Full Name: Akhil Puri
+
+QUESTION 1
+PART A - COMPUTE THE IMPURITY OF THE TARGET FEATURE
+#In order to compute the impurity using the Gini index lets first import the dataset that we will be working on
+
+#Importing the necessary modules
+
+import warnings
+warnings.filterwarnings("ignore")
+import pandas as pd
+import numpy as np
+pd.set_option('display.max_columns', None) 
+#Reading in the file A2_Q1 as a csv using panda method pd.read_csv
+
+q1 = pd.read_csv('A2_Q1.csv')
+
+#Displaying the first 5 columns of the dataframe credit_data
+
+q1.head()
+ID	Age	Education	Marital_Status	Occupation	Annual_Income
+0	1	39	bachelors	never married	professional	high
+1	2	50	doctorate	married	professional	mid
+2	3	18	high school	never married	agriculture	low
+3	4	30	bachelors	married	professional	mid
+4	5	37	high school	married	agriculture	mid
+Note that Shannon's entropy mode can be caluclated as
+
+H(x):=−∑i=1ℓ(P(t=i)×log2(P(t=i))
+ 
+The idea with entropy is that the more heterogenous and impure a feature is, the higher the entropy. Conversely, the more homogenous and pure a feature is, the lower the entropy.
+
+The gini impurity index is defined as follows:
+
+Gini(x):=1−∑i=1ℓP(t=i)2
+ 
+The idea with Gini index is the same as in entropy in the sense that the more heterogenous and impure a feature is, the higher the Gini index.
+
+In order to use these 2 formulas to determine the impurity of the target feature lets calculate the the probablity distribtion of the target feature
+
+#We can manually enter the probablity distribution of the target feature annual income 
+prob_AI = [3/20,12/20,5/20]
+The following calculation shows how impurity of the target feature (Annual income) can be computed using the entropy criterion.
+
+entropy = -1 * np.sum(np.log2(prob_AI) * prob_AI)
+entropy
+1.3527241956246545
+The impurity of the target feature (Annual income) using Gini index is calculated as below.
+
+gini_index = 1 - np.sum(np.square(prob_AI))
+gini_index
+0.5549999999999999
+Thus we entered the manual probability of the categorical target feature Annual income and got the impurity of the target feature
+
+Part B
+We now need to determine the root node of the decision tree for the given Annual income dataset
+The root node of the decision tree is the descriptive feature that results in the maximum information gain with respect to the target feature.
+
+So our main objective here is to first partition the dataset according to the various descriptive features and the levels that the feature can take to calculate the information gain.
+
+The measure of informativeness that we will use is known as information gain and is a measure of the reduction in the overall GINI index of a set of instances that is achieved by testing on a descriptive feature.
+
+Computing information gain is a three-step process:
+
+Compute the GINI index of the original dataset with respect to the target feature. ( We have already done this)
+
+For each descriptive feature, create the sets that result by partitioning the instances in the dataset using their feature values (levels) , and then sum the multiplication of the weights of the partitions with the GINI index scores of each of these partitions . This gives a measure of the information that remains required to organize the instances into pure sets after we have split them using the descriptive feature.
+
+Subtract the remaining entropy value (computed in step 2) from the original GINI index value (computed in step 1) to give the information gain.
+
+The first equation calculates the entropy for a dataset with respect to a target feature
+
+Gini(t,D):=1−∑l=levels(t)(P(t=l)2
+ 
+The formula for GINI remaining after we partition a dataset using a particular descriptive feature
+
+rem(d,D)=∑lElevels(d)|Dd=l|/|D|× [1−∑l=levels(t)(P(t=l)2]
+ 
+Finally we can now formally define information gain made from splitting the dataset using the feature d as
+
+IG(d,D)=H(t,D)−rem)d,D)
+ 
+Let's compute the information gain for splitting based on a descriptive feature to figure out the best feature to split on. For this task, we do the following:
+
+Compute impurity of the target feature (GINI index).
+Partition the dataset based on unique values of the descriptive feature.
+Compute impurity for each partition.
+Compute the remaining impurity as the weighted sum of impurity of each partition.
+Compute the information gain as the difference between the impurity of the target feature and the remaining impurity.
+We will define another function to achieve this, called comp_feature_information_gain().
+For convenience, we define a function called compute_impurity() that calculates impurity of a feature using either entropy or gini index. We will be using the GINI index
+
+def compute_impurity(feature, impurity_criterion):
+    """
+    This function calculates impurity of a feature.
+    Supported impurity criteria: 'entropy', 'gini'
+    input: feature (this needs to be a Pandas series)
+    output: feature impurity
+    """
+    probs = feature.value_counts(normalize=True)
+    
+    if impurity_criterion == 'entropy':
+        impurity = -1 * np.sum(np.log2(probs) * probs)
+    elif impurity_criterion == 'gini':
+        impurity = 1 - np.sum(np.square(probs))
+    else:
+        raise ValueError('Unknown impurity criterion')
+        
+    return(round(impurity, 3))
+Let's calculate entropy of the target feature "Annual_Income" using our new function.
+
+target_entropy = compute_impurity(q1['Annual_Income'], 'gini')
+target_entropy
+0.555
+Let's compute the information gain for splitting based on a descriptive feature to figure out the best feature to split on. For this task, we do the following:
+
+Compute impurity of the target feature (using either entropy or gini index). Partition the dataset based on unique values of the descriptive feature. Compute impurity for each partition. Compute the remaining impurity as the weighted sum of impurity of each partition. Compute the information gain as the difference between the impurity of the target feature and the remaining impurity. We will define another function to achieve this, called comp_feature_information_gain().
+
+As an example, let's have a look at the levels of the "Education" feature.
+
+q1['Education'].value_counts()
+high school    8
+bachelors      8
+doctorate      4
+Name: Education, dtype: int64
+Let's see how the partitions look like for this feature and what the corresponding calculations are using the entropy split criterion.
+
+for level in q1['Education'].unique():
+    print('level name:', level)
+    df_feature_level = q1[q1['Education'] == level]
+    print('corresponding data partition:')
+    print(df_feature_level)
+    print('partition target feature impurity:', compute_impurity(df_feature_level['Annual_Income'], 'gini'))
+    print('partition weight:', str(len(df_feature_level)) + '/' + str(len(q1)))
+    print('====================')
+level name: bachelors
+corresponding data partition:
+    ID  Age  Education Marital_Status    Occupation Annual_Income
+0    1   39  bachelors  never married  professional          high
+3    4   30  bachelors        married  professional           mid
+8    9   46  bachelors       divorced     transport           mid
+12  13   23  bachelors  never married   agriculture           low
+14  15   35  bachelors        married   agriculture           mid
+15  16   29  bachelors  never married   agriculture           mid
+17  18   37  bachelors        married  professional           mid
+19  20   25  bachelors        married     transport          high
+partition target feature impurity: 0.531
+partition weight: 8/20
+====================
+level name: doctorate
+corresponding data partition:
+    ID  Age  Education Marital_Status    Occupation Annual_Income
+1    2   50  doctorate        married  professional           mid
+7    8   40  doctorate        married  professional          high
+11  12   45  doctorate        married  professional           mid
+16  17   44  doctorate       divorced     transport           mid
+partition target feature impurity: 0.375
+partition weight: 4/20
+====================
+level name: high school
+corresponding data partition:
+    ID  Age    Education Marital_Status    Occupation Annual_Income
+2    3   18  high school  never married   agriculture           low
+4    5   37  high school        married   agriculture           mid
+5    6   23  high school  never married   agriculture           low
+6    7   52  high school       divorced     transport           mid
+9   10   33  high school        married     transport           mid
+10  11   36  high school  never married     transport           mid
+13  14   25  high school        married  professional          high
+18  19   39  high school       divorced  professional          high
+partition target feature impurity: 0.625
+partition weight: 8/20
+====================
+The idea here is that, for each one of the 4 data partitions above,
+
+We compute their impurity with respect to the target feature as a stand-alone dataset.
+We weigh these impurities with the relative number of observations in each partition. The relative number of observations is calculated as the number of observations in the partition divided by the total number of observations in the entire dataset. For instance, the weight of the first partition is 8/20.
+We add up these weighted impurities and call it the remaining impurity for this feature.
+For instance, remaining impurity as measured by entropy for the education feature is 0.531 x (8/20) + 0.375 x (4/20) + 0.625 x (8/20) = ‭0.2124‬ + 0.075‬ + 0.25‬ = 0.5374
+
+Information gain is then calculated as 0.555 - 0.5374 = 0.0176
+
+Therefore the information gain made from splitting the dataset using the feature Education is 0.0712
+
+We will be able to further corroborate the above value using the function to calculate information gain for all the descriptive features
+
+Now lets calcualate the information gain for splitting based on a descriptive feature to figure out the best feature to split on. For this task we will define another function to achieve this, called comp_feature_information_gain().
+
+def comp_feature_information_gain(df, target, descriptive_feature, split_criterion):
+    """
+    This function calculates information gain for splitting on 
+    a particular descriptive feature for a given dataset
+    and a given impurity criteria.
+    Supported split criterion: 'entropy', 'gini'
+    """
+    
+    print('target feature:', target)
+    print('descriptive_feature:', descriptive_feature)
+    print('split criterion:', split_criterion)
+            
+    target_entropy = compute_impurity(df[target], split_criterion)
+
+    # we define two lists below:
+    # entropy_list to store the entropy of each partition
+    # weight_list to store the relative number of observations in each partition
+    entropy_list = list()
+    weight_list = list()
+    
+    # loop over each level of the descriptive feature
+    # to partition the dataset with respect to that level
+    # and compute the entropy and the weight of the level's partition
+    for level in df[descriptive_feature].unique():
+        df_feature_level = df[df[descriptive_feature] == level]
+        entropy_level = compute_impurity(df_feature_level[target], split_criterion)
+        entropy_list.append(round(entropy_level, 3))
+        weight_level = len(df_feature_level) / len(df)
+        weight_list.append(round(weight_level, 3))
+
+    print('impurity of partitions:', entropy_list)
+    print('weights of partitions:', weight_list)
+
+    feature_remaining_impurity = np.sum(np.array(entropy_list) * np.array(weight_list))
+    print('remaining impurity:', feature_remaining_impurity)
+    
+    information_gain = target_entropy - feature_remaining_impurity
+    print('information gain:', information_gain)
+    
+    print('====================')
+
+    return(information_gain)
+Now that our function has been defined, we will call it for each descriptive feature in the dataset. First let's call it using the entropy split criteria.
+
+split_criteria = 'gini'
+for feature in q1.drop(columns=['Annual_Income','ID']).columns:
+    feature_info_gain = comp_feature_information_gain(q1, 'Annual_Income', feature, split_criteria)
+target feature: Annual_Income
+descriptive_feature: Age
+split criterion: gini
+impurity of partitions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+weights of partitions: [0.1, 0.05, 0.05, 0.05, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.1, 0.05, 0.05, 0.05]
+remaining impurity: 0.0
+information gain: 0.555
+====================
+target feature: Annual_Income
+descriptive_feature: Education
+split criterion: gini
+impurity of partitions: [0.531, 0.375, 0.625]
+weights of partitions: [0.4, 0.2, 0.4]
+remaining impurity: 0.5374000000000001
+information gain: 0.01759999999999995
+====================
+target feature: Annual_Income
+descriptive_feature: Marital_Status
+split criterion: gini
+impurity of partitions: [0.611, 0.42, 0.375]
+weights of partitions: [0.3, 0.5, 0.2]
+remaining impurity: 0.4683
+information gain: 0.08670000000000005
+====================
+target feature: Annual_Income
+descriptive_feature: Occupation
+split criterion: gini
+impurity of partitions: [0.5, 0.5, 0.278]
+weights of partitions: [0.4, 0.3, 0.3]
+remaining impurity: 0.4334
+information gain: 0.12160000000000004
+====================
+Lets come back to the descriptive feature age
+
+When building a decision tree, the easiest way to handle a continuous feature is to define a threshold around which splits will be made. The optimal threshold to split the continuous AGE feature would be arrived at using information gain based on entropy as the feature selection measure
+
+q1 = q1.drop(columns =['Education', 'Marital_Status','Occupation']) 
+q1.head()
+ID	Age	Annual_Income
+0	1	39	high
+1	2	50	mid
+2	3	18	low
+3	4	30	mid
+4	5	37	mid
+q1.age_sort = q1.sort_values('Age')
+q1.age_sort
+ID	Age	Annual_Income
+2	3	18	low
+5	6	23	low
+12	13	23	low
+19	20	25	high
+13	14	25	high
+15	16	29	mid
+3	4	30	mid
+9	10	33	mid
+14	15	35	mid
+10	11	36	mid
+4	5	37	mid
+17	18	37	mid
+18	19	39	high
+0	1	39	high
+7	8	40	high
+16	17	44	mid
+11	12	45	mid
+8	9	46	mid
+1	2	50	mid
+6	7	52	mid
+Based on this ordering, the mid-points in the AGE values of instances that are adjacent in the new ordering but that have different target levels define the possible threshold points. These points are 24, 27, 38 & 42.
+
+We calculate the information gain for each of these possible threshold points using the GINI index for of the dataset for the target feature we calculated earlier in this notebook (0.555) as follows
+
+GINI INDEX OF THE PARTITIONS BASED ON THE "AGE" FEATURE
+Now let us calculate the GINI index of the partition multiplied by the respective weights and summed over the created partitions
+
+The formula for GINI remaining after we partition a dataset using a particular descriptive feature
+
+rem(d,D)=∑lElevels(d)|Dd=l|/|D|× [1−∑l=levels(t)(P(t=l)2]
+ 
+SPLITTING THE DATASET (TARGET FEATURE COLUMN) BY AGE 24
+First we split by age > 24
+
+We get 2 partition with instances D1 = IDs 3 ,6 , 13 and D2 = IDS 14 ,20 16 4 10 15 11 5 18 1 19 8 17 12 9 2 7
+
+remainder for D1 is 0 as the target feature in this partition is just low so GINI is 0 hence remainder GINI which is the weight of the partition multiplied by the GINI for the partition is zero
+
+remainder for D2 is (17/20 X ( 1 - (( 0/17)^2 (low) + (12/17)^2 (mid) + (5/17)^2 (high)
+
+= 0.85 X ( 1 - ( + (12/17)^2 + (5/17)^2)
+
+= 0.85 X ( 1 - ( 0.4982698961937716‬ + 0.0865051903114187)
+
+= 0.85 * ( 1 - ( 0.5847750865051903)
+
+= 0.85 * 0.4152249134948097‬
+
+= 0.3529411764705882
+
+Total GINI remainder = 0 + 0.3529411764705882
+
+= 0.3529411764705882
+
+Information gain (Age >24)
+
+= 0.555 - 0.3529411764705882
+
+= 0.2020588235294118‬
+
+SPLITTING THE DATASET (TARGET FEATURE COLUMN) BY AGE 27
+Then we split by age > 27
+
+We get 2 partitions with instances D3 = IDS 3 6 13 14 20 and D4 = IDS 16 4 10 15 11 5 18 1 19 8 17 12 9 2 7
+
+remainder for D3 (Weight of the partition * Partition GINI )
+
+= 5/20 X ( 1 - ( (3/5)^2 (low) + (0 /5)^2 mid + (2/5)^2 (high) )
+
+= 5/20 X ( 1 - ( 0.36 + 0.16‬ )
+
+= 5/20 X ( 1 - 0.36 - 0.16‬ )
+
+= 5/20 * 0.48
+
+= 0.12
+
+remainder for D4
+
+= 15/20 X ( 1 - ( (0/15)^2 (low) + (12 /15)^2 (mid) + (3/15)^2 (high) )
+
+= .75 * ( 1 - ( 0 + 0.64‬ + 0.04‬ )
+
+= .75 * 0.32‬
+
+= 0.24
+
+Total remainder of split (Age > 27) by feature (addition of both partition D3 and D4 )
+
+= 0.12 + 0.24
+
+0.36
+
+Information gain ( Age > 27 )
+
+= 0.555 - 0.36
+
+= 0.195
+
+SPLITTING THE DATASET (TARGET FEATURE COLUMN) BY AGE 38
+We split by age >38
+We get 2 partition with instances D5 = IDS 3 6 13 14 20 16 4 10 15 11 5 18 and D6 = ids 1 19 8 17 12 9 2 7
+
+remainder GINI for D5 (Weight of the partition * Partition GINI )
+
+= 12/20 X ( 1 - ( (3/12)^2 (low) + (7/12)^2 (mid) + (2/12)^2 (high) )
+
+= 0.6‬ X ( 1 - ( 0.0625 + 0.3402777777777778‬ + 0.0277777777777778‬ )
+
+= 0.6‬ X ( 1 - ( 0.4305555555555556‬ )
+
+= 0.6‬ X ( 0.5694444444444444‬ )
+
+= 0.6‬ *0.5694444444444444
+
+= 0.3416666666666666
+
+remainder for D6
+
+= 8/20 X ( 1 - ( (0/8)^2 (low) + (5/8)^2 (mid) + (3/8)^2 (high) )
+
+= 8/20 X ( 1 - ( 0+ 0.390625 + 0.140625 )
+
+= 8/20 X ( 1 - 0.53125 )
+
+= 8/20 * 0.46875
+
+= 0.1875
+
+Total remainder of split by feature (Age > 38) (addition of both partitions)
+
+= 0.3416666666666666 + 0.1875
+
+0.5291666666666666‬
+
+Information gain ( Age > 38 )
+
+= 0.555 - 0.5291666666666666‬
+
+= 0.0258333333333334
+
+SPLITTING THE DATASET (TARGET FEATURE COLUMN) BY AGE 42
+We split by age > 42
+
+We get 2 partition with instances D7 = ids 3 6 13 14 20 16 4 10 15 11 5 18 1 19 8 and D8 = ids 17 12 9 2 7
+
+remainder for D7
+
+= 15/20 X ( 1 - ( (3/15)^2 (low) + (7/15)^2 (mid) + (5/15)^2 (high))
+
+= 0.75 X ( 1 - ( 0.04 + 0.2177777777777778 + 0.1111111111111111)
+
+= 0.75 X ( 1 - 0.3688888888888889)
+
+= 0.75 * 0.6311111111111111
+
+= 0.4733333333333333
+
+remainder for D8 is 0 as the target feature in this partition is just mid so entropy is 0 hence remainder which is the weight of the partition multiplied by the entropy is zero
+
+Information gain ( Age > 42 )
+
+= 0.555 - 0.4733333333333333
+
+= 0.0816666666666667‬
+
+#Populating pandas dataframe DF splits 
+
+df_splits = pd.DataFrame(columns=["Split", "Remainder", "Information_gain", "Is_Optimal"])
+df_splits.loc[len(df_splits)] = ['Age 24', 0.35, 0.202 , 'True']
+df_splits.loc[len(df_splits)] = ['Age 27', 0.36, 0.195 , 'False']
+df_splits.loc[len(df_splits)] = ['Age 38', 0.53 , 0.026 , 'False']
+df_splits.loc[len(df_splits)] = ['Age 42', 0.47 , 0.082 , 'False']
+df_splits.loc[len(df_splits)] = ['Education', 0.54 , 0.018, 'False']
+df_splits.loc[len(df_splits)] = ['Marital_Status', 0.47, 0.087, 'False']
+df_splits.loc[len(df_splits)] = ['Occupation', 0.43, 0.122, 'False']
+
+df_splits
+Split	Remainder	Information_gain	Is_Optimal
+0	Age 24	0.35	0.202	True
+1	Age 27	0.36	0.195	False
+2	Age 38	0.53	0.026	False
+3	Age 42	0.47	0.082	False
+4	Education	0.54	0.018	False
+5	Marital_Status	0.47	0.087	False
+6	Occupation	0.43	0.122	False
+PART C
+For this part we need to group the data by the descriptive feature education considering "Education" is the root node
+
+If we split the data according to the Education level - high school we get 8 observations with low income probability as 2/8 , mid income probability as 4/8 and high income probability as 2/8 . Given the mid income has the highest probability of 0.5 that becomes the leaf prediction for Education level - high school.
+
+If we split the data according to the Education level bachelors we get 8 observations with low income probability as 1/8 , mid income probability as 5/8 and high income probability as 2/8 . Given the mid income has the highest probability that becomes the leaf prediction for Education level - Bachelors.
+
+If we split the data according to the Education level doctorate we get 4 observations with low income probability as 0/4 , mid income probability as 3/4 and high income probability as 1/4 . Given the mid income again has the highest probability of 0.75 that becomes the leaf prediction for Education level - doctorate.
+
+df_prediction = pd.DataFrame(columns=["Leaf_Condition", "Low_Income_Prob", "Mid_Income_Prob", "High_Income_Prob", "Leaf_Prediction"])
+df_prediction.loc[len(df_prediction)] = ['Education==high School', 0.25 , 0.5 , 0.25 , 'mid']
+df_prediction.loc[len(df_prediction)] = ['Education==bachelors', 0.125 , 0.625 , 0.25 , 'mid']
+df_prediction.loc[len(df_prediction)] = ['Education==doctorate', 0 , 0.75 , 0.25 , 'mid']
+df_prediction
+Leaf_Condition	Low_Income_Prob	Mid_Income_Prob	High_Income_Prob	Leaf_Prediction
+0	Education==high School	0.250	0.500	0.25	mid
+1	Education==bachelors	0.125	0.625	0.25	mid
+2	Education==doctorate	0.000	0.750	0.25	mid
+df_splits
+Split	Remainder	Information_gain	Is_Optimal
+0	Age 24	0.35	0.202	True
+1	Age 27	0.36	0.195	False
+2	Age 38	0.53	0.026	False
+3	Age 42	0.47	0.082	False
+4	Education	0.54	0.018	False
+5	Marital_Status	0.47	0.087	False
+6	Occupation	0.43	0.122	False
