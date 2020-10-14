@@ -1,0 +1,413 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+MATH 1318 SEMESTER 1, 2019
+
+ASSIGNMENT 1
+
+AKHIL PURI
+S3774583
+
+Introduction
+
+The ozone layer is what protects us living being from harmful UV rays . Ultraviolet (UV) radiation is a type of energy produced by the sun and some artificial sources, such as solariums. The sun's ultraviolet (UV) radiation is the main cause of skin cancer. Thus if the ozone layer delpletes it is of great concern to all of us. The dataset being used will be used to analyse  yearly changes in the thickness of Ozone layer 1927 to 2016 in Dobson units. A negative value in the dataset represents a decrease in the thickness and a positive value represents an increase in the thickness.
+
+Methodology 
+
+We need to predict the yearly changes for the next 5 years (2017-2022) using  the best fitting model from among the linear, quadratic, cosine, cyclical or seasonal trend model , with the help of the model building strategy which includes descriptive look, model specification (or identification), model fitting, model diagnostics, and last but not the least forecasting, whihc is the main goal of the task 
+
+
+Setup 
+
+```{r include=FALSE}
+library(TSA)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(tidyr)
+library(tidyverse)
+library(broom)
+library(magrittr)
+library(zoo)
+library(TTR)
+library(tseries)
+library(forecast)
+
+```
+
+#Reading in the dataset
+
+We will read in the 
+
+```{r}
+
+ozone_layer_thickness <- read.csv("C:/Users/axelp/Documents/RMIT/Semester 4/Time Series/Assignment 1/ozone_layer_thickness.csv",header
+= FALSE)
+
+rownames(ozone_layer_thickness) <- seq(from=1927, to=2016)
+
+head(ozone_layer_thickness)
+
+names(ozone_layer_thickness)[names(ozone_layer_thickness) == "V1"] <- "thickness"
+
+head(ozone_layer_thickness)
+
+class(ozone_layer_thickness)
+```
+
+#Displaying the histogram with the frequencies of the changing thckness of the Ozone layer 
+```{r}
+
+hist(ozone_layer_thickness$thickness,xlab = "Change in Ozone Layer thickness ",main = "Histogram Ozone Layer thickness ")
+
+#The distribution is negatively skewed / left tailed. This means the mean is pulled to the left and is smaller than the median 
+
+```
+
+#Converting the ozone_layer_thickness dataframe to a time series object 
+
+```{r}
+
+ozone_thickness_ts <- ts(as.vector(ozone_layer_thickness), start=1927, end=2016)
+
+class(ozone_thickness_ts)
+
+```
+
+```{r}
+
+plot(ozone_thickness_ts,ylab='Yearly changes in the thickness of Ozone layer',xlab='Year',type='o', main = "Time series plot of
+Yearly changes in the thickness of Ozone layer.")
+
+
+
+```
+
+#Descriptive look of the time series
+Trend: downward trend / change in the mean level
+Changing variance: There is a slight changing variance towards the year 1980 from the earlier difference between successive points
+Seasonality: There are no visible seasonality (repeating patterns)
+Autoregression / Moving Average : There are more succesive points that are at the opposite ends of the zero mean level (MA) and very few successive data points like in a AR series . There appear to be more fluctuations around the mean level. 
+level.
+Intervention: There is no point in the series after which the pattern of the series drastically changes 
+
+
+```{r}
+
+plot(y=ozone_thickness_ts,x=zlag(ozone_thickness_ts),ylab='Changes in the thickness of Ozone layer', xlab='Previous year ozone layer thickness',main = "Scatter plot of changes in ozone layer thickness")
+
+```
+
+#We can see a strong correlation between successive values i.e first lag has a strong autocorrelation 
+
+
+```{r}
+#Let us now see the correlation co-efficient between the change in this years and last years values 
+
+y = ozone_thickness_ts
+x = zlag(ozone_thickness_ts)
+index = 2:length(x)
+cor(y[index],x[index])
+
+# As coorborated by the co-efficeint of correlation , there is a significant amount of correlation between succesive values of change in thickness ovet the years 
+
+```
+
+Model Fitting 
+
+Let us now start by fitting the models to determine which is the best fit by doing residual analysis of the fitted values 
+
+```{r}
+#Linear trend model
+
+linear_model = lm(ozone_thickness_ts~time(ozone_thickness_ts))
+summary(linear_model)
+
+# Even though the intercept co-efficent is significant,  the adjusted R square value , which is the percentage of the response variable variation that is explained or captured by the linear trend model, which in this case the change in the ozone layer thickness ,  isnt very high . 
+#Ideally a good fit should be 0.7<R^2<0.85
+
+#A trend line is plotted over the time series 
+
+plot(ozone_thickness_ts,type='o',ylab='y',main = "Changes in the thickness of ozone layer (1927-2016)")
+abline(linear_model) # add the fitted least squares line from model1
+
+#Its clearly visible that this is not a good model for the time series as this does not capture the mean level towards the end 
+#We should be able to see some unusual and non random , biased residuals in the residual analysis 
+
+# Let us look at the residuals of the fitted values
+
+res.linear_model = rstudent(linear_model)
+plot(y = res.linear_model, x = as.vector(time(ozone_thickness_ts)),xlab = 'Time', ylab='Standardized Residuals',type='p',main = "Residuals of the fitted values")
+
+# Even though the circles are spread around the rectangle evenly and there appears to be no pattern in the residuals , we can see 3 significant outliers 
+
+#Lets analyse the normality of the residuals using a QQ plot 
+
+qqnorm(res.linear_model)
+qqline(res.linear_model, col = 2, lwd = 1, lty = 2)
+
+#The residuals appear more or less normal with slight deviation at the tails 
+
+#A Shapiro test can confirm the normality 
+
+shapiro.test(res.linear_model)
+
+#A p-value of 0.5372 means we fail to reject the Null hypothesis that the residuals are normally distributed 
+
+#The normal quantiule plots and the shapiro test confoirmed normlaity but we still have the ACF ( auto-correlation function ) for the residuals left . If there are no signifant lags in the ACF plot we should be able to determine goodness of fit.. Lets take a look
+
+acf(res.linear_model)
+
+#LAG 1 of the ACF is quite significant as it breaches the dotted line representing the significance level.
+#Also we can see a decaying ACF lag with a sine wave pattern indicating a MA process 
+
+#This means there is correlation between residuals that are one time period apart so we will continue our search for a better model
+
+
+```
+
+```{r}
+
+#Now lets look at the Quadratic model and whether it is able to capture the mean level of the changing thickness of the ozone layer time series
+#Quadratic model
+
+t = time(ozone_thickness_ts)
+t2 = t^2
+quadratic_model = lm(ozone_thickness_ts~ t + t2)
+summary(quadratic_model)
+
+#We notice an increase in the value of R-square also known as coefficient of determination OR the statistical measure of how close the data are to the fitted regression line. A value of 0.7331 is quite good means that 73% of the variation in the change in thickness of the ozone layer can be explained by the quadratic model
+
+#Both co-efficients t= 8.30e-06 , t2= 5.87e-06 *** are significant as well. This model is looking good 
+
+plot(ts(fitted(quadratic_model)), ylim = c(min(c(fitted(quadratic_model),
+as.vector(ozone_thickness_ts))), max(c(fitted(quadratic_model),as.vector(ozone_thickness_ts)))),ylab='y' ,
+main = "Fitted quadratic curve to the Ozone Layer time series")
+lines(as.vector(ozone_thickness_ts),type="o")
+
+#This curve captures the entire mean level across the time series quite impressively ! 
+
+#Lets study and analyse the residuals from the quadratic model 
+
+res.quadratic_model = rstudent(quadratic_model)
+plot(y = res.quadratic_model, x = as.vector(time(ozone_thickness_ts)),xlab = 'Year', ylab='Standardized Residuals',type='p',main = "Residuals from the Quadratic model")
+abline(h=0)
+
+#The residuals look evenly spread across the rectangular plot and around the mean level as well. There appear to be some significant outliers which can be ignored given the even distribution of the residuals . 
+
+#Lets look at the QQ-plot to further corroborate normality 
+
+qqnorm(res.quadratic_model)
+qqline(res.quadratic_model, col = 2, lwd = 1, lty = 2)
+
+#The residuals seem nomrally distributed with the ends slightly tailed
+
+#Lets conduct the Shapiro Will normality test to even further corroborate the normality 
+
+shapiro.test(res.quadratic_model)
+
+#The shapiro test turns up a p-value of 0.6493 , which means we fail to reject the null hypothesis that the residuals are normally distributed 
+
+#Finally we can have a look at the ACF to finally confirm that there are no significant lags leading to autocorrelation of the residuals with its own lags . A pure white noise in the residauals will normally have no significant lags between the error / residauls terms 1,2 or even 3 time time periods away. 
+
+acf(res.quadratic_model)
+
+#From the graph we can comment that although there is a significant correlation at lag 1 , its still less than the correlation between the residals at lag 1 from the linear model. 
+
+#We can see a seasonality pattern as forming from the 3rd significant with MA properties but since this is a yearly series we can say there is cyclicity every 6 to 7 years (or more) in the way the ozone thickness changes over time in dobson units. 
+
+#None of the models till now have been able to capture the seasonality as we can still see traces of it in the residuals. 
+
+```
+
+We cannot use the Cyclical seasonal OR the Cosine trend model as the time series needs to be monthly in order to capture the seasonality within the year . We get an error trying to model a yearly series using Cyclical or Seasonal Trend / Cosine Trend
+
+This means that we can go ahead and use the quadratic series to generate forecast for the next 5 years (2017 to 2021) as that was the series which was able to capture the mean level better with a overall superior goodness of fit determined through residual analysis
+
+```{r}
+#Modelling and predicting the forecasts in a graph with an upper and lower limit of 5%.
+t = c(2017,2018,2019,2020,2021)  
+t2 = t^2
+t1 = t
+quad_forc = data.frame(t1, t2)
+forecasts = predict(quadratic_model, quad_forc, interval = "prediction")
+print(forecasts)
+
+#Plotting the forecast 
+plot(ozone_thickness_ts, xlim = c(1927,2025), ylim = c(-15, 15), ylab = "Change in ozone layer thickness",main ="Forecast of quadractic model")
+#Generating the line delineating the forecasts
+lines(ts(as.vector(forecasts[,1]), start = 2017), col="red", type="l")
+lines(ts(as.vector(forecasts[,2]), start = 2017), col="blue", type="l")
+lines(ts(as.vector(forecasts[,3]), start = 2017), col="blue", type="l")
+
+#Creating the legend
+legend("topright", lty=1, pch=1, col=c("green","blue","red"), text.width = 35,c("Data","5% forecast limits", "Forecasts"))
+
+
+```
+
+Conclusion 
+
+We used the quadratic model as it was a better fit compared to the linear model.
+The quadratic model was able to better capture the mean level as well as significant autocorrelation between the lags of the time series.
+It may not be the best fit as we could still see some non random pattern in the ACF as well as significant autocorrelation in LAG 1 between the residuals.
+Or model shows that the same pattern of ozone layer thickness depletion will continue 
+
+
+PART B
+
+Introduction- 
+
+We will be using the changing thickness of the ozone layer measured in dobson units dataset for selecting the best ARIMA models
+Using ACF, PACF  , EACF plots and BIC table we will be arriving at the best order of (p,d,q) where p is the number of significant lags in the PACF before the decay into insignificant autocorrelation lags and , q is the number of significant lags in the ACF plot before decay into insignificant
+autocorrelation lags and d is the number of times we difference the series to achieve non-stationarity (absense of trend and changing variance)
+
+```{r}
+
+#Lets look at the descriptoive look of the series again 
+
+plot(ozone_thickness_ts,ylab='Yearly changes in the thickness of Ozone layer',xlab='Year',type='o', main = "Time series plot of
+Yearly changes in the thickness of Ozone layer.")
+
+#There is a clear downward trend
+#There appears to be some sort of a repeating pattern initally in the series but this diminishes over time
+#There are few succcesive points where the variance changes from earlier on in the plot but overall there appears to be no changing variance
+#No intervention point that changes the behavior/ trend  of the series 
+#The series has successive points do not rise or dip (contuining in the same direction) and some successive points that fluctuate around the mean level suggesting this has both a Moving Average as well as Auto-Regressive behavior
+```
+
+```{r}
+#Lets look at the ACF and PACF plots to see existence of stationarity and any seasonal pattern 
+
+acf(ozone_thickness_ts)
+pacf(ozone_thickness_ts)
+
+# We can see  clear decaying auto-correlations suggesting non-stationarity as well as a "wavy" patterns which appears to be a case of seasonality 
+# but first we need to run the adf test to corroborate non-stationarity
+
+adf.test(ozone_thickness_ts)
+
+#The null hypothesis is that the series is non-stationary . The p-value = 0.0867 will lead us to fail to reject the null hypothesis.
+
+# Now that we have established the existence of non-statioanrity lets look at the normality of the data 
+
+```
+
+
+```{r}
+
+#QQ-plot
+
+qqnorm(ozone_thickness_ts)
+qqline(ozone_thickness_ts, col =2, lwd =1, lty =2)
+
+# Clearly the tails are not aligned with the red line meaning that the data is not normal and this can be verified using the Shapiro-Wilk normality test
+
+shapiro.test(ozone_thickness_ts)
+
+# The p-value of 0.004031 leads us to reject the Null hypothesis that the data is normal i.e the data is not normal
+
+# Now we need to transform the data using BoxCox transformation to reduce any changing variance and normalise the shape of the data. 
+
+# Given that we are dealing with negative values in the series we will add a non-negative constant equal to the minimum value in the dataset
+
+#We need to determine the value of Lambda which we will be using to transform the series , whhich will be the mid point of the CI interval caluclated after adding a non -negative constant
+
+ozone_thickness_ts.cons = BoxCox.ar(ozone_thickness_ts+ abs(min(ozone_thickness_ts))+1)
+
+
+ozone_thickness_ts.cons$ci
+
+#The confidence interval is [0.9 , 1.5] whhich inludes 1 that means we need to conduct the transformation not using log transfomation 
+
+#We use the mid-point of the interval as our lamda which is 1.2
+
+lambda = 1.2
+
+ozone_thickness_ts = ozone_thickness_ts + abs(min(ozone_thickness_ts))
+
+
+#Now that we have added a contant to the series we can now do the BoxCox transformation 
+
+BC.ozone_thickness_ts = (ozone_thickness_ts^lambda-1)/lambda
+qqnorm(BC.ozone_thickness_ts) # To check normality
+qqline(BC.ozone_thickness_ts, col = 2)
+
+shapiro.test(BC.ozone_thickness_ts)
+
+#Even after the transforamtion  the data has not been normalised 
+#Because there was no changing varinace, transformation had no effect on the series
+#So we will continue to make the ORIGINAL series stationary using differencing
+
+
+```
+
+
+```{r}
+#We now carry out differcing on the original series 
+
+diff.ozone_thickness_ts = diff(ozone_thickness_ts)
+par(mfrow=c(1,1))
+plot(diff.ozone_thickness_ts,type='o',ylab=' Ozone Layer Series with first differencing ', main = "First Differenced ozone layer series")
+
+adf.test(diff.ozone_thickness_ts)
+
+#We can now see that the p-value of the differenced series is 0.01 which means we can reject the null hypothesis that the series is non-stationary 
+```
+
+```{r}
+#Lets look ata the ACF and PACF plots of the differnced series 
+
+
+acf(diff.ozone_thickness_ts)
+pacf(diff.ozone_thickness_ts)
+
+#Looking at the ACF and PACF plots we can tell the order of ARIMA (p,d,q)
+#Clearly the no of significant lags in the PACF before the auto-correlations in the lags become insignicant is 2 , maybe even 3 as the 6th lag is significant immediately after the 5th insignificant lag so p can be both 2 and 3 
+#From the ACF we can we are sure of the the 3rd lag being significant after which there are some insignificant correlations in the lag, but soon some significant correlations appear in the 7th and 10th lag . So p is defintely 1 but could be 2 or 3 
+# We have differenced once so d =1 
+
+
+```
+
+Therefore the ARIMA model from ACF and PACF is ARIMA (2,1,1) and possible ARIMA models are ARIMA(2,1,2) ,  ARIMA(2,1,2) , ARIMA(2,1,3) ARIMA(3,1,1), ARIMA (3,1,2) and ARIMA (3,1,3)
+
+
+```{r}
+
+#Coming to EACF table to determine the other possible ARIMA models 
+
+eacf(diff.ozone_thickness_ts)
+
+#We need to look at the corners / vertex formed by the crosses as we move from the lower right corner of the EACF table to the top left hand corner 
+
+#From the procedure we can poosbly determine ARIMA (3,1,3) , ARIMA(2,1,3), ARIMA(1,1,3) , ARIMA (0,1,3) 
+#These are possible values as certain vertexes are not being formed by the X's
+
+
+```
+
+```{r}
+par(mfrow=c(1,1))
+BIC = armasubsets(y=diff.ozone_thickness_ts,nar=5,nma=5,y.name='test',ar.method='ols')
+plot(BIC)
+
+#From the BIC table we can get AR (2) and AR(3) for lower BIC's (till 3rd row not lower) and MA(1) and MA(2)
+
+#So the possible models are ARIMA(2,1,1), ARIMA(2,1,2), ARIMA(3,1,1) AND ARIMA (3,1,2)
+```
+
+CONCLUSION
+
+Finally to summarise from the ACF and PACF plots we get the following ARIMA models - ARIMA (2,1,1), ARIMA(2,1,2) ,  ARIMA(2,1,2) , ARIMA(2,1,3) ARIMA(3,1,1), ARIMA (3,1,2) and ARIMA (3,1,3)
+
+From the EACF table we get - ARIMA (3,1,3) , ARIMA(2,1,3), ARIMA(1,1,3) , ARIMA (0,1,3)
+
+From the BIC table we get - ARIMA(2,1,1), ARIMA(2,1,2), ARIMA(3,1,1) AND ARIMA (3,1,2)
+
+There are possible overlaps between the any 2 procedures  for example betwwen ACF/PACF & the BIC table {ARIMA (3,1,2) & ARIMA(2,1,2)} 
+
+
+
