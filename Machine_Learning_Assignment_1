@@ -1,0 +1,780 @@
+MACHINE LEARNING ASSIGNMENT 1¶
+I solemnly swear that I have not discussed my assignment solutions with anyone in any way and the solutions I am submitting are my own personal work.
+
+Full Name: Akhil Puri
+Q1
+Importing modules to utilize methods from the modules
+import warnings
+warnings.filterwarnings("ignore")
+import numpy as np
+import pandas as pd
+pd.set_option('display.max_columns', None) 
+from itertools import islice
+import io
+import requests
+Reading in the raw data file and displaying the first 5 lines
+#Define the name of the file to read from
+filename = "crx.data"
+
+#Define the number of lines to read
+number_of_lines = 5
+
+with open(filename, 'r') as input_file:
+    lines_cache = islice(input_file, number_of_lines)
+   
+    for current_line in lines_cache:
+        print (current_line)
+        
+#The above code displays the first 5 lines of the raw data file. 
+#This is done in order to see what the data looks like before we start pre-processing the data for analysis 
+#The column names are missing.
+#We can also see that there are 5 numeric columns while the rest are categorical 
+b,30.83,0,u,g,w,v,1.25,t,t,01,f,g,00202,0,+
+
+a,58.67,4.46,u,g,q,h,3.04,t,t,06,f,g,00043,560,+
+
+a,24.50,0.5,u,g,q,h,1.5,t,f,0,f,g,00280,824,+
+
+b,27.83,1.54,u,g,w,v,3.75,t,t,05,t,g,00100,3,+
+
+b,20.17,5.625,u,g,w,v,1.71,t,f,0,f,s,00120,0,+
+
+Reading the .data file CSV as a panda dataframe and displaying the first 5 lines
+#Reading in the file crx.data as a csv using panda method pd.read_csv
+#Also giving the columns a header name. 
+credit_data = pd.read_csv('crx.data' , sep=',', decimal='.',header=None, names=['C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12','C13','C14','C15','C16'])
+
+#Displaying the first 5 columns of the dataframe credit_data
+credit_data.head()
+C1	C2	C3	C4	C5	C6	C7	C8	C9	C10	C11	C12	C13	C14	C15	C16
+0	b	30.83	0.000	u	g	w	v	1.25	t	t	1	f	g	00202	0	+
+1	a	58.67	4.460	u	g	q	h	3.04	t	t	6	f	g	00043	560	+
+2	a	24.50	0.500	u	g	q	h	1.50	t	f	0	f	g	00280	824	+
+3	b	27.83	1.540	u	g	w	v	3.75	t	t	5	t	g	00100	3	+
+4	b	20.17	5.625	u	g	w	v	1.71	t	f	0	f	s	00120	0	+
+Displaying information about the dataframe
+credit_data.info()
+#In the below output we can see that for column C2 and C14 the values are numerical but the panda datatype is object (string).
+#We need to convert the datatype to floating (numeric)
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 690 entries, 0 to 689
+Data columns (total 16 columns):
+C1     690 non-null object
+C2     690 non-null object
+C3     690 non-null float64
+C4     690 non-null object
+C5     690 non-null object
+C6     690 non-null object
+C7     690 non-null object
+C8     690 non-null float64
+C9     690 non-null object
+C10    690 non-null object
+C11    690 non-null int64
+C12    690 non-null object
+C13    690 non-null object
+C14    690 non-null object
+C15    690 non-null int64
+C16    690 non-null object
+dtypes: float64(2), int64(2), object(12)
+memory usage: 86.3+ KB
+Converting the data within a column from one type to another
+#Converting data type of column 2 from object (string or mixed) to the correct data type floating (numeric)
+credit_data['C2'] = pd.to_numeric(credit_data['C2'],errors='coerce')
+
+#Converting data type of column 14 from object (string or mixed) to the correct data type floating (numeric)
+credit_data['C14'] = pd.to_numeric(credit_data['C14'],errors='coerce')
+
+credit_data.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 690 entries, 0 to 689
+Data columns (total 16 columns):
+C1     690 non-null object
+C2     678 non-null float64
+C3     690 non-null float64
+C4     690 non-null object
+C5     690 non-null object
+C6     690 non-null object
+C7     690 non-null object
+C8     690 non-null float64
+C9     690 non-null object
+C10    690 non-null object
+C11    690 non-null int64
+C12    690 non-null object
+C13    690 non-null object
+C14    677 non-null float64
+C15    690 non-null int64
+C16    690 non-null object
+dtypes: float64(4), int64(2), object(10)
+memory usage: 86.3+ KB
+Dealing with unusual values by replacing them with NAN and imputing missing values with median/mode
+#Set all unusual values to missing values. 
+#Also need to impute any missing values with the mode for categorical features and with the median for numerical features
+#If there are multiple modes for a categorical feature, use the mode that comes first alphabetically.
+#Checking for null values for the object type float64
+
+credit_data.isnull().sum()
+C1      0
+C2     12
+C3      0
+C4      0
+C5      0
+C6      0
+C7      0
+C8      0
+C9      0
+C10     0
+C11     0
+C12     0
+C13     0
+C14    13
+C15     0
+C16     0
+dtype: int64
+#Replacing the missing values in Columnn C2 & C14 with the median of the non-null values 
+
+credit_data['C2'].fillna(credit_data['C2'].median(), inplace=True)
+
+credit_data['C14'].fillna(credit_data['C14'].median(), inplace=True)
+
+credit_data.isnull().sum()
+C1     0
+C2     0
+C3     0
+C4     0
+C5     0
+C6     0
+C7     0
+C8     0
+C9     0
+C10    0
+C11    0
+C12    0
+C13    0
+C14    0
+C15    0
+C16    0
+dtype: int64
+#Checking the different values of the categorical features/columns and the number of missing values within each categorical column/ feature
+
+credit_data['C1'].value_counts()
+b    468
+a    210
+?     12
+Name: C1, dtype: int64
+#Checking the different values of the categorical features/columns and the number of missing values within each categorical column/ feature
+
+credit_data['C4'].value_counts()
+u    519
+y    163
+?      6
+l      2
+Name: C4, dtype: int64
+#Checking the different values of the categorical features/columns and the number of missing values within each categorical column/ feature
+
+credit_data['C5'].value_counts()
+g     519
+p     163
+?       6
+gg      2
+Name: C5, dtype: int64
+#Checking the different values of the categorical features/columns and the number of missing values within each categorical column/ feature
+
+credit_data['C6'].value_counts()
+c     137
+q      78
+w      64
+i      59
+aa     54
+ff     53
+k      51
+cc     41
+x      38
+m      38
+d      30
+e      25
+j      10
+?       9
+r       3
+Name: C6, dtype: int64
+#First replacing the "?" within each categorical feature with NAN (not a number ) using np.nan 
+#Then replacing the missing value NAN with the mode of each categorical feature 
+
+credit_data.C1.replace('?',np.nan, inplace=True)
+
+credit_data.C4.replace('?',np.nan, inplace=True)
+
+credit_data.C5.replace('?',np.nan, inplace=True)
+
+credit_data.C6.replace('?',np.nan, inplace=True)
+
+credit_data.C7.replace('?',np.nan, inplace=True)
+
+credit_data['C1'].fillna(credit_data.C1.mode()[0], inplace=True)
+
+credit_data['C4'].fillna(credit_data.C4.mode()[0], inplace=True)
+
+credit_data['C5'].fillna(credit_data.C5.mode()[0], inplace=True)
+
+credit_data['C6'].fillna(credit_data.C6.mode()[0], inplace=True)
+
+credit_data['C7'].fillna(credit_data.C7.mode()[0], inplace=True)
+Verifying whether the dealing with unusual values/ imputing with median/mode has been carried out successfully
+#Checking the value counts for the different categorical features again 
+#Ensuring that the "?" column has disappeared for the different categorical features 
+
+credit_data['C1'].value_counts()
+b    480
+a    210
+Name: C1, dtype: int64
+credit_data['C4'].value_counts()
+u    525
+y    163
+l      2
+Name: C4, dtype: int64
+credit_data['C5'].value_counts()
+g     525
+p     163
+gg      2
+Name: C5, dtype: int64
+credit_data['C6'].value_counts()
+c     146
+q      78
+w      64
+i      59
+aa     54
+ff     53
+k      51
+cc     41
+x      38
+m      38
+d      30
+e      25
+j      10
+r       3
+Name: C6, dtype: int64
+credit_data['C7'].value_counts()
+v     408
+h     138
+bb     59
+ff     57
+z       8
+j       8
+dd      6
+n       4
+o       2
+Name: C7, dtype: int64
+Binning the numerical feature C2 as a categorical ordinal variable with equal sized bins
+#Now lets discretize the numerical decriptive feature C2 via equal frequency binning with bins named "low", "medium" & "high"
+
+credit_data['C2'] = pd.qcut(credit_data['C2'],q=3, labels=['low','medium','high'])
+#Getting the value counts post binning of the C2 numerical variable
+credit_data['C2'].value_counts()
+medium    231
+low       230
+high      229
+Name: C2, dtype: int64
+#Creating a copy of the binned data set 
+
+credit_binned = credit_data 
+#Displaying the forst few rows of the binned data set 
+credit_binned.head(8)
+C1	C2	C3	C4	C5	C6	C7	C8	C9	C10	C11	C12	C13	C14	C15	C16
+0	b	medium	0.000	u	g	w	v	1.25	t	t	1	f	g	202.0	0	+
+1	a	high	4.460	u	g	q	h	3.04	t	t	6	f	g	43.0	560	+
+2	a	medium	0.500	u	g	q	h	1.50	t	f	0	f	g	280.0	824	+
+3	b	medium	1.540	u	g	w	v	3.75	t	t	5	t	g	100.0	3	+
+4	b	low	5.625	u	g	w	v	1.71	t	f	0	f	s	120.0	0	+
+5	b	medium	4.000	u	g	m	v	2.50	t	f	0	t	g	360.0	0	+
+6	b	medium	1.040	u	g	r	h	6.50	t	f	0	t	g	164.0	31285	+
+7	a	low	11.585	u	g	cc	v	0.04	t	f	0	f	g	80.0	1349	+
+#Integer encoding the levels of the numerical feature C2
+
+credit_binned['C2'] = credit_binned['C2'].replace({'low': 0, 'medium':1,'high':2 })
+credit_binned.head()
+C1	C2	C3	C4	C5	C6	C7	C8	C9	C10	C11	C12	C13	C14	C15	C16
+0	b	1	0.000	u	g	w	v	1.25	t	t	1	f	g	202.0	0	+
+1	a	2	4.460	u	g	q	h	3.04	t	t	6	f	g	43.0	560	+
+2	a	1	0.500	u	g	q	h	1.50	t	f	0	f	g	280.0	824	+
+3	b	1	1.540	u	g	w	v	3.75	t	t	5	t	g	100.0	3	+
+4	b	0	5.625	u	g	w	v	1.71	t	f	0	f	s	120.0	0	+
+#Renaming the last column to target 
+ 
+Target = credit_binned['C16'] 
+
+Target.value_counts()
+-    383
++    307
+Name: C16, dtype: int64
+#Calling the categorical columns using the data type object making up the values within the feature 
+
+cats = credit_binned.columns[credit_binned.dtypes == np.object].tolist()
+
+cats
+['C1', 'C4', 'C5', 'C6', 'C7', 'C9', 'C10', 'C12', 'C13', 'C16']
+#Running a for loop to display the levels and the number of values of those levels under each categorical feature
+
+for cat in cats:
+    print(cat + ':')
+    print(credit_binned[cat].value_counts())
+    print('\n')
+C1:
+b    480
+a    210
+Name: C1, dtype: int64
+
+
+C4:
+u    525
+y    163
+l      2
+Name: C4, dtype: int64
+
+
+C5:
+g     525
+p     163
+gg      2
+Name: C5, dtype: int64
+
+
+C6:
+c     146
+q      78
+w      64
+i      59
+aa     54
+ff     53
+k      51
+cc     41
+x      38
+m      38
+d      30
+e      25
+j      10
+r       3
+Name: C6, dtype: int64
+
+
+C7:
+v     408
+h     138
+bb     59
+ff     57
+z       8
+j       8
+dd      6
+n       4
+o       2
+Name: C7, dtype: int64
+
+
+C9:
+t    361
+f    329
+Name: C9, dtype: int64
+
+
+C10:
+f    395
+t    295
+Name: C10, dtype: int64
+
+
+C12:
+f    374
+t    316
+Name: C12, dtype: int64
+
+
+C13:
+g    625
+s     57
+p      8
+Name: C13, dtype: int64
+
+
+C16:
+-    383
++    307
+Name: C16, dtype: int64
+
+
+#Creating a copy of the data for one hot encoding 
+
+credit_OHE = credit_binned.copy()
+
+#Checking the categorical columns binary levels to avoid the dummy variable trap during one hot encoding
+#Intuitively there will be a duplicate category which we can drop without losing any data within the regressors
+
+for column in cats:
+    p = len(credit_OHE[column].unique())
+    if (p == 2):
+        credit_OHE[column] = pd.get_dummies(credit_OHE[column], drop_first=True)
+        
+#For other categorical columns that have more than 2 levels we will use the normal one hot encoding without droppping a level
+
+credit_OHE = pd.get_dummies(credit_OHE)
+#The shape of the encoded dataframe, namely the number of rows and columns
+
+credit_OHE.shape
+(690, 43)
+#Rounding all the numbers to 3 decimal places
+
+credit_OHE.describe(include='all').round(3)
+C1	C2	C3	C8	C9	C10	C11	C12	C14	C15	C16	C4_l	C4_u	C4_y	C5_g	C5_gg	C5_p	C6_aa	C6_c	C6_cc	C6_d	C6_e	C6_ff	C6_i	C6_j	C6_k	C6_m	C6_q	C6_r	C6_w	C6_x	C7_bb	C7_dd	C7_ff	C7_h	C7_j	C7_n	C7_o	C7_v	C7_z	C13_g	C13_p	C13_s
+count	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.0	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000
+mean	0.696	0.999	4.759	2.223	0.523	0.428	2.400	0.458	183.562	1017.386	0.555	0.003	0.761	0.236	0.761	0.003	0.236	0.078	0.212	0.059	0.043	0.036	0.077	0.086	0.014	0.074	0.055	0.113	0.004	0.093	0.055	0.086	0.009	0.083	0.2	0.012	0.006	0.003	0.591	0.012	0.906	0.012	0.083
+std	0.460	0.816	4.978	3.347	0.500	0.495	4.863	0.499	172.190	5210.103	0.497	0.054	0.427	0.425	0.427	0.054	0.425	0.269	0.409	0.237	0.204	0.187	0.266	0.280	0.120	0.262	0.228	0.317	0.066	0.290	0.228	0.280	0.093	0.275	0.4	0.107	0.076	0.054	0.492	0.107	0.292	0.107	0.275
+min	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.0	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000
+25%	0.000	0.000	1.000	0.165	0.000	0.000	0.000	0.000	80.000	0.000	0.000	0.000	1.000	0.000	1.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.0	0.000	0.000	0.000	0.000	0.000	1.000	0.000	0.000
+50%	1.000	1.000	2.750	1.000	1.000	0.000	0.000	0.000	160.000	5.000	1.000	0.000	1.000	0.000	1.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.0	0.000	0.000	0.000	1.000	0.000	1.000	0.000	0.000
+75%	1.000	2.000	7.208	2.625	1.000	1.000	3.000	1.000	272.000	395.500	1.000	0.000	1.000	0.000	1.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.000	0.0	0.000	0.000	0.000	1.000	0.000	1.000	0.000	0.000
+max	1.000	2.000	28.000	28.500	1.000	1.000	67.000	1.000	2000.000	100000.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.0	1.000	1.000	1.000	1.000	1.000	1.000	1.000	1.000
+#Applying standard scaling to the credit one hot encoded panda dataframe
+
+from sklearn import preprocessing
+
+Data_scaler = preprocessing.StandardScaler()
+
+credit_OHE_scaled = Data_scaler.fit_transform(credit_OHE)
+
+#What we get after the scaling is an array 
+
+credit_OHE_scaled
+array([[ 0.66143783,  0.00177693, -0.95661321, ...,  0.32249031,
+        -0.10830607, -0.30007898],
+       [-1.51185789,  1.22785715, -0.06005053, ...,  0.32249031,
+        -0.10830607, -0.30007898],
+       [-1.51185789,  0.00177693, -0.8561017 , ...,  0.32249031,
+        -0.10830607, -0.30007898],
+       ...,
+       [-1.51185789,  0.00177693,  1.7571976 , ...,  0.32249031,
+        -0.10830607, -0.30007898],
+       [ 0.66143783, -1.2243033 , -0.91540349, ...,  0.32249031,
+        -0.10830607, -0.30007898],
+       [ 0.66143783,  1.22785715, -0.27816051, ...,  0.32249031,
+        -0.10830607, -0.30007898]])
+#We now need to convert the array to a dataframe using the column names from the dataframe before we did the normalisation. 
+
+credit_OHE_scaled_df = pd.DataFrame(credit_OHE_scaled, 
+                                    columns=credit_OHE.columns)
+
+#Displaying the head of the dataframe 
+credit_OHE_scaled_df.head()
+C1	C2	C3	C8	C9	C10	C11	C12	C14	C15	C16	C4_l	C4_u	C4_y	C5_g	C5_gg	C5_p	C6_aa	C6_c	C6_cc	C6_d	C6_e	C6_ff	C6_i	C6_j	C6_k	C6_m	C6_q	C6_r	C6_w	C6_x	C7_bb	C7_dd	C7_ff	C7_h	C7_j	C7_n	C7_o	C7_v	C7_z	C13_g	C13_p	C13_s
+0	0.661438	0.001777	-0.956613	-0.291083	0.95465	1.157144	-0.288101	-0.919195	0.107155	-0.195413	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	0.322490	-0.108306	-0.300079
+1	-1.511858	1.227857	-0.060051	0.244190	0.95465	1.157144	0.740830	-0.919195	-0.816912	-0.087852	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	2.801099	-0.066082	-0.319744	-0.241417	-0.305782	-0.093659	-0.300079	2.0	-0.108306	-0.07636	-0.053916	-1.202834	-0.108306	0.322490	-0.108306	-0.300079
+2	-1.511858	0.001777	-0.856102	-0.216324	0.95465	-0.864196	-0.493887	-0.919195	0.560471	-0.037144	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	2.801099	-0.066082	-0.319744	-0.241417	-0.305782	-0.093659	-0.300079	2.0	-0.108306	-0.07636	-0.053916	-1.202834	-0.108306	0.322490	-0.108306	-0.300079
+3	0.661438	0.001777	-0.647038	0.456505	0.95465	1.157144	0.535044	1.087908	-0.485643	-0.194837	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	0.322490	-0.108306	-0.300079
+4	0.661438	-1.224303	0.174141	-0.153526	0.95465	-0.864196	-0.493887	-0.919195	-0.369408	-0.195413	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	-3.100868	-0.108306	3.332456
+#Rounding to 3 decimal places 
+
+credit_OHE_scaled_df.describe(include='all').round(3)
+C1	C2	C3	C8	C9	C10	C11	C12	C14	C15	C16	C4_l	C4_u	C4_y	C5_g	C5_gg	C5_p	C6_aa	C6_c	C6_cc	C6_d	C6_e	C6_ff	C6_i	C6_j	C6_k	C6_m	C6_q	C6_r	C6_w	C6_x	C7_bb	C7_dd	C7_ff	C7_h	C7_j	C7_n	C7_o	C7_v	C7_z	C13_g	C13_p	C13_s
+count	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000
+mean	0.000	-0.000	0.000	0.000	0.000	-0.000	0.000	-0.000	0.000	-0.000	-0.000	-0.000	0.000	0.000	0.000	-0.000	0.000	0.000	0.000	-0.000	0.000	0.000	0.000	-0.000	0.000	0.000	0.000	0.000	-0.000	-0.000	-0.000	-0.000	-0.000	0.000	0.000	0.000	-0.000	-0.000	-0.000	-0.000	0.000	-0.000	-0.000
+std	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001
+min	-1.512	-1.224	-0.957	-0.665	-1.048	-0.864	-0.494	-0.919	-1.067	-0.195	-1.117	-0.054	-1.784	-0.556	-1.784	-0.054	-0.556	-0.291	-0.518	-0.251	-0.213	-0.194	-0.288	-0.306	-0.121	-0.283	-0.241	-0.357	-0.066	-0.320	-0.241	-0.306	-0.094	-0.300	-0.500	-0.108	-0.076	-0.054	-1.203	-0.108	-3.101	-0.108	-0.300
+25%	-1.512	-1.224	-0.756	-0.616	-1.048	-0.864	-0.494	-0.919	-0.602	-0.195	-1.117	-0.054	0.561	-0.556	0.561	-0.054	-0.556	-0.291	-0.518	-0.251	-0.213	-0.194	-0.288	-0.306	-0.121	-0.283	-0.241	-0.357	-0.066	-0.320	-0.241	-0.306	-0.094	-0.300	-0.500	-0.108	-0.076	-0.054	-1.203	-0.108	0.322	-0.108	-0.300
+50%	0.661	0.002	-0.404	-0.366	0.955	-0.864	-0.494	-0.919	-0.137	-0.194	0.895	-0.054	0.561	-0.556	0.561	-0.054	-0.556	-0.291	-0.518	-0.251	-0.213	-0.194	-0.288	-0.306	-0.121	-0.283	-0.241	-0.357	-0.066	-0.320	-0.241	-0.306	-0.094	-0.300	-0.500	-0.108	-0.076	-0.054	0.831	-0.108	0.322	-0.108	-0.300
+75%	0.661	1.228	0.492	0.120	0.955	1.157	0.123	1.088	0.514	-0.119	0.895	-0.054	0.561	-0.556	0.561	-0.054	-0.556	-0.291	-0.518	-0.251	-0.213	-0.194	-0.288	-0.306	-0.121	-0.283	-0.241	-0.357	-0.066	-0.320	-0.241	-0.306	-0.094	-0.300	-0.500	-0.108	-0.076	-0.054	0.831	-0.108	0.322	-0.108	-0.300
+max	0.661	1.228	4.672	7.858	0.955	1.157	13.294	1.088	10.557	19.012	0.895	18.547	0.561	1.798	0.561	18.547	1.798	3.432	1.930	3.979	4.690	5.158	3.467	3.270	8.246	3.540	4.142	2.801	15.133	3.127	4.142	3.270	10.677	3.332	2.000	9.233	13.096	18.547	0.831	9.233	0.322	9.233	3.332
+#The clean dataset after assigning the target values 
+
+df_clean = credit_OHE_scaled_df.assign(Target = Target.values)
+
+df_clean.head()
+C1	C2	C3	C8	C9	C10	C11	C12	C14	C15	C16	C4_l	C4_u	C4_y	C5_g	C5_gg	C5_p	C6_aa	C6_c	C6_cc	C6_d	C6_e	C6_ff	C6_i	C6_j	C6_k	C6_m	C6_q	C6_r	C6_w	C6_x	C7_bb	C7_dd	C7_ff	C7_h	C7_j	C7_n	C7_o	C7_v	C7_z	C13_g	C13_p	C13_s	Target
+0	0.661438	0.001777	-0.956613	-0.291083	0.95465	1.157144	-0.288101	-0.919195	0.107155	-0.195413	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	0.322490	-0.108306	-0.300079	+
+1	-1.511858	1.227857	-0.060051	0.244190	0.95465	1.157144	0.740830	-0.919195	-0.816912	-0.087852	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	2.801099	-0.066082	-0.319744	-0.241417	-0.305782	-0.093659	-0.300079	2.0	-0.108306	-0.07636	-0.053916	-1.202834	-0.108306	0.322490	-0.108306	-0.300079	+
+2	-1.511858	0.001777	-0.856102	-0.216324	0.95465	-0.864196	-0.493887	-0.919195	0.560471	-0.037144	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	2.801099	-0.066082	-0.319744	-0.241417	-0.305782	-0.093659	-0.300079	2.0	-0.108306	-0.07636	-0.053916	-1.202834	-0.108306	0.322490	-0.108306	-0.300079	+
+3	0.661438	0.001777	-0.647038	0.456505	0.95465	1.157144	0.535044	1.087908	-0.485643	-0.194837	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	0.322490	-0.108306	-0.300079	+
+4	0.661438	-1.224303	0.174141	-0.153526	0.95465	-0.864196	-0.493887	-0.919195	-0.369408	-0.195413	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	-3.100868	-0.108306	3.332456	+
+#Displaying the dimesnion of the clean dataset
+df_clean.shape
+(690, 44)
+#Displaying the descriptive statistisc of the clean dataset 
+df_clean.describe(include='all').round(3)
+C1	C2	C3	C8	C9	C10	C11	C12	C14	C15	C16	C4_l	C4_u	C4_y	C5_g	C5_gg	C5_p	C6_aa	C6_c	C6_cc	C6_d	C6_e	C6_ff	C6_i	C6_j	C6_k	C6_m	C6_q	C6_r	C6_w	C6_x	C7_bb	C7_dd	C7_ff	C7_h	C7_j	C7_n	C7_o	C7_v	C7_z	C13_g	C13_p	C13_s	Target
+count	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690.000	690
+unique	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	2
+top	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	-
+freq	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	383
+mean	0.000	-0.000	0.000	0.000	0.000	-0.000	0.000	-0.000	0.000	-0.000	-0.000	-0.000	0.000	0.000	0.000	-0.000	0.000	0.000	0.000	-0.000	0.000	0.000	0.000	-0.000	0.000	0.000	0.000	0.000	-0.000	-0.000	-0.000	-0.000	-0.000	0.000	0.000	0.000	-0.000	-0.000	-0.000	-0.000	0.000	-0.000	-0.000	NaN
+std	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	1.001	NaN
+min	-1.512	-1.224	-0.957	-0.665	-1.048	-0.864	-0.494	-0.919	-1.067	-0.195	-1.117	-0.054	-1.784	-0.556	-1.784	-0.054	-0.556	-0.291	-0.518	-0.251	-0.213	-0.194	-0.288	-0.306	-0.121	-0.283	-0.241	-0.357	-0.066	-0.320	-0.241	-0.306	-0.094	-0.300	-0.500	-0.108	-0.076	-0.054	-1.203	-0.108	-3.101	-0.108	-0.300	NaN
+25%	-1.512	-1.224	-0.756	-0.616	-1.048	-0.864	-0.494	-0.919	-0.602	-0.195	-1.117	-0.054	0.561	-0.556	0.561	-0.054	-0.556	-0.291	-0.518	-0.251	-0.213	-0.194	-0.288	-0.306	-0.121	-0.283	-0.241	-0.357	-0.066	-0.320	-0.241	-0.306	-0.094	-0.300	-0.500	-0.108	-0.076	-0.054	-1.203	-0.108	0.322	-0.108	-0.300	NaN
+50%	0.661	0.002	-0.404	-0.366	0.955	-0.864	-0.494	-0.919	-0.137	-0.194	0.895	-0.054	0.561	-0.556	0.561	-0.054	-0.556	-0.291	-0.518	-0.251	-0.213	-0.194	-0.288	-0.306	-0.121	-0.283	-0.241	-0.357	-0.066	-0.320	-0.241	-0.306	-0.094	-0.300	-0.500	-0.108	-0.076	-0.054	0.831	-0.108	0.322	-0.108	-0.300	NaN
+75%	0.661	1.228	0.492	0.120	0.955	1.157	0.123	1.088	0.514	-0.119	0.895	-0.054	0.561	-0.556	0.561	-0.054	-0.556	-0.291	-0.518	-0.251	-0.213	-0.194	-0.288	-0.306	-0.121	-0.283	-0.241	-0.357	-0.066	-0.320	-0.241	-0.306	-0.094	-0.300	-0.500	-0.108	-0.076	-0.054	0.831	-0.108	0.322	-0.108	-0.300	NaN
+max	0.661	1.228	4.672	7.858	0.955	1.157	13.294	1.088	10.557	19.012	0.895	18.547	0.561	1.798	0.561	18.547	1.798	3.432	1.930	3.979	4.690	5.158	3.467	3.270	8.246	3.540	4.142	2.801	15.133	3.127	4.142	3.270	10.677	3.332	2.000	9.233	13.096	18.547	0.831	9.233	0.322	9.233	3.332	NaN
+#Displaying the first five rows  of the clean dataset 
+df_clean.head(5)
+C1	C2	C3	C8	C9	C10	C11	C12	C14	C15	C16	C4_l	C4_u	C4_y	C5_g	C5_gg	C5_p	C6_aa	C6_c	C6_cc	C6_d	C6_e	C6_ff	C6_i	C6_j	C6_k	C6_m	C6_q	C6_r	C6_w	C6_x	C7_bb	C7_dd	C7_ff	C7_h	C7_j	C7_n	C7_o	C7_v	C7_z	C13_g	C13_p	C13_s	Target
+0	0.661438	0.001777	-0.956613	-0.291083	0.95465	1.157144	-0.288101	-0.919195	0.107155	-0.195413	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	0.322490	-0.108306	-0.300079	+
+1	-1.511858	1.227857	-0.060051	0.244190	0.95465	1.157144	0.740830	-0.919195	-0.816912	-0.087852	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	2.801099	-0.066082	-0.319744	-0.241417	-0.305782	-0.093659	-0.300079	2.0	-0.108306	-0.07636	-0.053916	-1.202834	-0.108306	0.322490	-0.108306	-0.300079	+
+2	-1.511858	0.001777	-0.856102	-0.216324	0.95465	-0.864196	-0.493887	-0.919195	0.560471	-0.037144	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	2.801099	-0.066082	-0.319744	-0.241417	-0.305782	-0.093659	-0.300079	2.0	-0.108306	-0.07636	-0.053916	-1.202834	-0.108306	0.322490	-0.108306	-0.300079	+
+3	0.661438	0.001777	-0.647038	0.456505	0.95465	1.157144	0.535044	1.087908	-0.485643	-0.194837	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	0.322490	-0.108306	-0.300079	+
+4	0.661438	-1.224303	0.174141	-0.153526	0.95465	-0.864196	-0.493887	-0.919195	-0.369408	-0.195413	-1.116941	-0.053916	0.560612	-0.556146	0.560612	-0.053916	-0.556146	-0.291386	-0.518056	-0.251345	-0.213201	-0.193892	-0.288448	-0.305782	-0.121268	-0.282511	-0.241417	-0.357003	-0.066082	3.127499	-0.241417	-0.305782	-0.093659	-0.300079	-0.5	-0.108306	-0.07636	-0.053916	0.831370	-0.108306	-3.100868	-0.108306	3.332456	+
+df_clean.to_csv('df_clean.csv', index=False)
+Question 2 Part a
+Creating lists of countires with the respective values for each macroeconomic and social features
+#Using the CSV file with the data provided to create 17 lists for the different countries 
+#List each country with their respective scores for the 5 listed  macro-economic and social features
+#From left to right within the list: LIFE EXP, TOP-10 INCOME, INFANT MORT, MIL. SPEND,SCHOOL YEARS
+Afghanistan = [59.61,23.21,74.3,4.44,0.4, 1.5171]
+Haiti = [45,47.67,73.1,0.09,3.4, 1.7999]
+Nigeria = [51.3,38.23,82.6,1.07,4.1, 2.4493]
+Egypt = [70.48,26.58,19.6,1.86,5.3, 2.8622]
+Argentina = [75.77,32.3,13.3,0.76,10.1, 2.9961]
+China = [74.87,29.98,13.7,1.95,6.4, 3.6356]
+Brazil = [73.12,42.93,14.5,1.43,7.2, 3.7741]
+Israel = [81.3,28.8,3.6,6.77,12.5, 5.8069]
+USA = [78.51,29.85,6.3,4.72,13.7, 7.1357]
+Ireland = [80.15,27.23,3.5,0.6,11.5, 7.536]
+UK = [80.09,28.49,4.4,2.59,13, 7.7751]
+Germany = [80.24,22.07,3.5,1.31,12, 8.0461]
+Canada = [80.99,24.79,4.9,1.42,14.2, 8.6725]
+Australia = [82.09,25.4,4.2,1.86,11.5, 8.8442]
+Sweden = [81.43,22.18,2.4,1.27,12.8, 9.2985]
+NewZealand = [80.67,27.81,4.9,1.13,12.3, 9.4627]
+#Note Russia has one element lesser than the rest of the lists
+Russia = [67.62,31.68,10,3.87,12.9]
+List of list for the countires with their respecitve values for the 5 listed macro-economic and social features
+#List of lists for the 16 countries and their respecitve values for the 5 listed  macro-economic and social features
+
+list_of_countries = [Afghanistan, Haiti, Nigeria, Egypt, Argentina, China, Brazil,Israel,USA,Ireland, UK, Germany, Canada, Australia, Sweden, NewZealand]
+Function to calculate the Manhattan index of a given country against Russia
+#Function to calculate the Manhattan index of a given country against Russia
+#loop till we fetch each value for a particular country and calculate the absolute difference 
+#append the calculated values to an empty list and return the list
+def manhattan_distance(individual_country_value_list):
+    abs_value_per_country = []
+    for one_value in range(5):
+        one_value_diff = abs(Russia[one_value] - individual_country_value_list[one_value])
+        abs_value_per_country.append(one_value_diff)
+    return abs_value_per_country
+Function to sum the absolute values obtained from the manhattan_distance
+#function to sum the absolute values obtained from the manhattan_distance 
+def add_values_for_country(abs_value):
+    total = 0.0
+    for one in range(len(abs_value)):
+        total = total + abs_value[one]
+    return total
+Function to generate a dict with manhattan distance values and cpi
+#Function to generate a dict with manhattan distance values and cpi
+def generate_manhattan_value_cpi_dict():
+    manhattan_distance_values = []
+    cpi_manhattan_dict = {}
+    for one_country in range(len(list_of_countries)):
+        abs_value_list = manhattan_distance(list_of_countries[one_country])
+        sum_of_values = add_values_for_country(abs_value_list)
+        manhattan_distance_values.append(sum_of_values)
+        
+#Creating dict with the manhattan value as key and cpi value as value
+        cpi_manhattan_dict[sum_of_values] = list_of_countries[one_country][-1]
+    return cpi_manhattan_dict
+Sorting the dictionary with Manhattan distance and CPI & Printing CPI using Manhattan distance 3 nearest neighbour
+print ("\nCalculating CPI index for Russia . . . . . . \n")
+final_dict = generate_manhattan_value_cpi_dict()
+
+#sorting the keys of the final dictionary
+sorted_keys = sorted(final_dict)
+
+cpi = 0 
+for one in sorted_keys[0:3]:
+    cpi += final_dict[one]
+cpi = cpi/3
+
+print ("CPI of Russia using Manhattan distance is : ")
+
+print (cpi) 
+Calculating CPI index for Russia . . . . . . 
+
+CPI of Russia using Manhattan distance is : 
+4.589133333333334
+Q2 Part b - Calulating CPI using Weighted KNN with Manhattan Distance
+#List each country with their respective scores
+Afghanistan = [59.61,23.21,74.3,4.44,0.4, 1.5171]
+Haiti = [45,47.67,73.1,0.09,3.4, 1.7999]
+Nigeria = [51.3,38.23,82.6,1.07,4.1, 2.4493]
+Egypt = [70.48,26.58,19.6,1.86,5.3, 2.8622]
+Argentina = [75.77,32.3,13.3,0.76,10.1, 2.9961]
+China = [74.87,29.98,13.7,1.95,6.4, 3.6356]
+Brazil = [73.12,42.93,14.5,1.43,7.2, 3.7741]
+Israel = [81.3,28.8,3.6,6.77,12.5, 5.8069]
+USA = [78.51,29.85,6.3,4.72,13.7, 7.1357]
+Ireland = [80.15,27.23,3.5,0.6,11.5, 7.536]
+UK = [80.09,28.49,4.4,2.59,13, 7.7751]
+Germany = [80.24,22.07,3.5,1.31,12, 8.0461]
+Canada = [80.99,24.79,4.9,1.42,14.2, 8.6725]
+Australia = [82.09,25.4,4.2,1.86,11.5, 8.8442]
+Sweden = [81.43,22.18,2.4,1.27,12.8, 9.2985]
+NewZealand = [80.67,27.81,4.9,1.13,12.3, 9.4627]
+#Note Russia has one element lesser than the rest of the lists
+Russia = [67.62,31.68,10,3.87,12.9]
+
+list_of_countries = [Afghanistan, Haiti, Nigeria, Egypt, Argentina, China, Brazil,Israel,USA,Ireland, UK, Germany, Canada, Australia, Sweden, NewZealand]
+Function to calculate the manhattan index of a given country against Russia
+#Function to calculate the manhattan index of a given country against Russia
+#loop till we fetch each value for a particular country and calc the absolute difference 
+#append the calculated values to an empty list and return the list
+def manhattan_distance(country_to_compare, one_country_list):
+    abs_value_per_country = []
+    for one_value in range(5):
+        one_value_diff = abs(country_to_compare[one_value] - one_country_list[one_value])
+        abs_value_per_country.append(one_value_diff)
+    return abs_value_per_country
+Function to sum the absolute values obtained from function manhattan_distance
+#Function to sum the absolute values obtained from the manhattan_distance 
+def add_values_for_country(abs_value):
+    total = 0.0
+    for one in range(len(abs_value)):
+        total = total + abs_value[one]
+    return total
+#function to generate a dict with manhattan distance values and cpi
+def generate_manhattan_value_cpi_dict(country_to_compare, list_of_countries, list_of_countries_with_cpi):
+    manhattan_distance_values = []
+    cpi_manhattan_dict = {}
+    for one_country in range(len(list_of_countries)):
+        abs_value_list = manhattan_distance(country_to_compare,list_of_countries[one_country])
+        sum_of_values = add_values_for_country(abs_value_list)
+        manhattan_distance_values.append(sum_of_values)
+#creating dict with the manhattan value as key and cpi value as value
+        cpi_manhattan_dict[sum_of_values] = list_of_countries_with_cpi[one_country][-1]
+    return cpi_manhattan_dict
+Function for weighted average product generator
+def weighted_avg_product_generator(manhattan_dict_cpi):
+    weights = []
+    products = []
+    for manhattan_distance, cpi_value in manhattan_dict_cpi.items():
+        weight = 1 / (manhattan_distance*manhattan_distance)
+        product = weight * cpi_value
+        weights.append(weight)
+        products.append(product)
+    return weights, products
+Generating dictionary with weights and product of weights and cpi
+def cpi_using_knn(country, country_list, country_list_with_cpi):
+    final_dict  = generate_manhattan_value_cpi_dict(country, country_list, country_list_with_cpi)
+    weight_list , product_list = weighted_avg_product_generator(final_dict)
+    #print weight_list
+    #print "\n"
+    #print product_list
+    sum_of_weights = 0.0
+    sum_of_products = 0.0
+    for one in range(15):
+        sum_of_weights += weight_list[one]
+        sum_of_products += product_list[one]
+    cpi_knn = sum_of_products/sum_of_weights
+    return cpi_knn
+Printing CPI using weighted KNN
+print("CPI of Russia using weighted knn model is ")
+print(cpi_using_knn(Russia, list_of_countries, list_of_countries))
+CPI of Russia using weighted knn model is 
+5.861782797321216
+Q2c - Calculating CPI of Russia using normalised values
+Creating lists for countries and parameters
+#List each country with their respective scores
+Afghanistan = [59.61,23.21,74.3,4.44,0.4, 1.5171]
+Haiti = [45,47.67,73.1,0.09,3.4, 1.7999]
+Nigeria = [51.3,38.23,82.6,1.07,4.1, 2.4493]
+Egypt = [70.48,26.58,19.6,1.86,5.3, 2.8622]
+Argentina = [75.77,32.3,13.3,0.76,10.1, 2.9961]
+China = [74.87,29.98,13.7,1.95,6.4, 3.6356]
+Brazil = [73.12,42.93,14.5,1.43,7.2, 3.7741]
+Israel = [81.3,28.8,3.6,6.77,12.5, 5.8069]
+USA = [78.51,29.85,6.3,4.72,13.7, 7.1357]
+Ireland = [80.15,27.23,3.5,0.6,11.5, 7.536]
+UK = [80.09,28.49,4.4,2.59,13, 7.7751]
+Germany = [80.24,22.07,3.5,1.31,12, 8.0461]
+Canada = [80.99,24.79,4.9,1.42,14.2, 8.6725]
+Australia = [82.09,25.4,4.2,1.86,11.5, 8.8442]
+Sweden = [81.43,22.18,2.4,1.27,12.8, 9.2985]
+NewZealand = [80.67,27.81,4.9,1.13,12.3, 9.4627]
+#Note Russia has one element lesser than the rest of the lists
+Russia = [67.62,31.68,10,3.87,12.9]
+
+list_of_countries = [Afghanistan, Haiti, Nigeria, Egypt, Argentina, China, Brazil,Israel,USA,Ireland, UK, Germany, Canada, Australia, Sweden, NewZealand]
+
+
+life_expectancy = [59.61,45.00,51.30,70.48,75.77,74.87,73.12,81.30,78.51,80.15,80.09,80.24,80.99,82.09,81.43,80.67,67.62]
+top_10_income = [23.21,47.67,38.23,26.58,32.30,29.98,42.93,28.80,29.85,27.23,28.49,22.07,24.79,25.40,22.18,27.81,31.68]
+infant_mortality = [74.30,73.10,82.60,19.60,13.30,13.70,14.50,3.60,6.30,3.50,4.40,3.50,4.90,4.20,2.40,4.90,10.00]
+military_spend = [4.44,0.09,1.07,1.86,0.76,1.95,1.43,6.77,4.72,0.60,2.59,1.31,1.42,1.86,1.27,1.13,3.87]
+school_years = [0.40,3.40,4.10,5.30,10.10,6.40,7.20,12.50,13.70,11.50,13.00,12.00,14.20,11.50,12.80,12.30,12.90]
+list_of_parameters = [life_expectancy,top_10_income,infant_mortality,military_spend,school_years]
+Defining the normalsier function
+def normalizer(one_country_list):
+    normalized_list = []
+    for one_value in range(len(one_country_list)):
+        #calculate normalized value
+        min_value = min(one_country_list)
+        max_value = max(one_country_list)
+        normalized_value = (one_country_list[one_value] - min_value )/(max_value - min_value)
+        normalized_list.append(round(normalized_value, 2))
+    return normalized_list
+Flipping tranposing the normalised list to original form 17X6 matrix
+def transposed_country_list_generator(list_of_parameters):
+    normalized_param_list = []
+    for one_value in range(len(list_of_parameters)):
+        normalized_list = normalizer(list_of_parameters[one_value])
+        normalized_param_list.append(normalized_list)
+    #transposing normalised param list 
+    transposed_country_list = list(zip(*normalized_param_list))
+    return transposed_country_list
+Converting tuple to list
+#transposing normalised values:
+transposed_list_of_countries = transposed_country_list_generator(list_of_parameters)
+normalized_russia = transposed_list_of_countries[-1:]
+normalized_russia = normalized_russia[0]
+normalized_russia_list = list(normalized_russia)
+transposed_list_of_countries_tuple = transposed_list_of_countries[:len(transposed_list_of_countries) - 1]
+transposed_list_of_countries_list = []
+
+for one in transposed_list_of_countries_tuple:
+    one = list(one)
+    transposed_list_of_countries_list.append(one)
+Function to calculate the manhattan index of a given country against Russia
+#Function to calculate the manhattan index of a given country against Russia
+#loop till we fetch each value for a particular country and calc the absolute difference 
+#append the calculated values to an empty list and return the list
+def manhattan_distance(country_to_compare, one_country_list):
+    abs_value_per_country = []
+    for one_value in range(5):
+        one_value_diff = abs(country_to_compare[one_value] - one_country_list[one_value])
+        abs_value_per_country.append(one_value_diff)
+    return abs_value_per_country
+
+#function to sum the absolute values obtained from the manhattan_distance 
+def add_values_for_country(abs_value):
+    total = 0.0
+    for one in range(len(abs_value)):
+        total = total + abs_value[one]
+    return total
+Function to generate a dict with manhattan distance values and cpi
+#function to generate a dict with manhattan distance values and cpi
+def generate_manhattan_value_cpi_dict(country_to_compare, list_of_countries, list_of_countries_with_cpi):
+    manhattan_distance_values = []
+    cpi_manhattan_dict = {}
+    for one_country in range(len(list_of_countries)):
+        abs_value_list = manhattan_distance(country_to_compare,list_of_countries[one_country])
+        sum_of_values = add_values_for_country(abs_value_list)
+        manhattan_distance_values.append(sum_of_values)
+#creating dict with the manhattan value as key and cpi value as value
+        cpi_manhattan_dict[sum_of_values] = list_of_countries_with_cpi[one_country][-1]
+    return cpi_manhattan_dict
+Generating manhanntan value & CPI dictionary , sorting according to ascending value of manhattan value and averaging the first 3 CPIS
+def cpi_three_nearest_neighbour(country,country_list, country_list_with_cpi):
+    #print "\nCalculating CPI index for Russia . . . . . . \n"
+    final_dict  = generate_manhattan_value_cpi_dict(country, country_list, country_list_with_cpi)
+    #sorting the keys of the final dictionary
+    sorted_keys = sorted(final_dict)
+    cpi = 0 
+    for one in sorted_keys[0:3]:
+        cpi += final_dict[one]
+    cpi = cpi/3
+    return cpi
+Printing CPI of Russia using 3 nearest neighbour for normalized values
+print("CPI of Russia using 3 nearest neighbour for normalized value is ")
+print(cpi_three_nearest_neighbour(normalized_russia, transposed_list_of_countries_list, list_of_countries)) 
+CPI of Russia using 3 nearest neighbour for normalized value is 
+5.968966666666667
