@@ -1,0 +1,495 @@
+---
+title: "Assignment 2_Forecasting"
+author: "Akhil Puri"
+date: "02/10/2019"
+output:
+  word_document: default
+  html_document: default
+---
+
+Welcome to assignment 2. The objective of this assignment is to inpect and examine amount of horizontal solar radiation reaching the ground at a particular location over the globe.  
+
+For this aim,we need to work on the monthly average horizontal solar radiation and the monthly precipitation series measured at the same location between January 1960 and December 2014.
+
+
+
+```{r}
+
+library(TSA)
+library(urca)
+library(x12)
+library(tseries)
+library(Hmisc)
+library(dynlm)
+library(forecast)
+library(car)
+library(xts)
+library(readr)
+library(AER)
+library(dLagM)
+library(ggplot2)
+
+#Reading in the monthly average horizontal solar radiation and monthly precipitation series dataset into R
+
+dataset = read.csv(file = "C:/Users/axelp/Documents/RMIT/Semester 2/Forecasting/Assignment 2/Task 1/data.csv", header=TRUE)
+
+#Checking the class and the head of the read in dataset
+
+class(dataset)
+head(dataset)
+
+#Converting the dataset into time series
+
+solar = ts(dataset$solar, start = c(1960,1), frequency= 12)
+head(solar)
+
+prec = ts(dataset$ppt, start = c(1960,1), frequency= 12)
+head(prec)
+
+combined = ts(dataset[,1:2],start = c(1960,1), frequency= 12)
+
+#Plotting them individually 
+
+plot(solar, ylab = "Monthly average horizontal solar radiation ", xlab = "Year", main = "Solar radiation series")
+points(y=solar,x=time(solar), pch=as.vector(season(solar)))
+
+plot(prec, ylab = "Monthly precipitation series  ", xlab = "Year", main = "Monthly precipitation series ")
+points(y=prec,x=time(prec), pch=as.vector(season(prec)))
+
+#We can plot them in the same frame but the scales will be all over the place and we won't be able to see the precipitation series correcly .
+
+plot(combined, plot.type="s", col = c("red", "cyan"), main = "Monthly average solar radiation and precipitation series")
+
+legend("topleft",lty=1, text.width = 11, col=c("red", "cyan"), c("Y series", "X series"))
+
+# We can scale and center both series to see in the same plot clearly
+comb.scaled = scale(combined)
+plot(comb.scaled, plot.type="s",col = c("red", "cyan"), main = "Monthly average solar radiation and precipitation series")
+legend("topleft",lty=1, text.width = 11, col=c("red", "cyan"), c("Y series", "X series"))
+
+#There is a negative average correlation between the monthly average solar radiation and monthly precipitation series 
+cor(combined)
+
+#ACF of the solar radiation 
+acf(solar, max.lag = 50, main="Sample ACF for solar radiation")
+
+#We can infer from the pattern of the ACF that there is sesonality 
+
+#Checking for stationarity in both the radiation and precipitation series 
+s=ar(diff(solar))$order
+adf.test(solar, k=s)
+#As the p-value is greater than 0.05 ,we fail to reject the null hypothesis that the radiation series is non-stationary 
+
+p=ar(diff(prec))$order
+adf.test(prec,k=p)
+#As the p-value is greater than 0.05 ,we fail to reject the null hypothesis that the precipitation series is non-stationary
+
+#STL deccomposition for the radiation series to show the seasonal and trend components of the series since it apparent from the 
+#ACF plot that there is a clear seaonsal pattern 
+
+solar.decom <- stl(solar, t.window=15, s.window="periodic", robust=TRUE)
+plot(solar.decom)
+
+
+```
+
+
+#Distributed lag models
+
+Now let us move to modelling the solar radiation series using the time series regression models 
+
+````{r}
+
+
+#Finite DLM
+for ( i in 1:11){
+  fitdlm = dlm( x = as.vector(prec) , y = as.vector(solar), q = i )
+  cat("q = ", i, "AIC = ", AIC(fit1.1$model), "BIC = ", BIC(fit1.1$model),"\n")
+}
+
+#q=11 gives us the lowest AIC and BIC 
+
+fitdlm1 = dlm( x = as.vector(prec) , y = as.vector(solar), q = 11 )
+summary(fit1)
+checkresiduals(fit1$model)
+
+vif.fit1 = vif(fit1$model)
+vif.fit1>10
+
+#From the variance inflation facotrs we can tell that there is no multicollinearity but the model is not a good fit due to the low value of Adjusted R^2
+
+#Polynomial distributed lag model
+
+fit2 = polyDlm(x = as.vector(prec) , y = as.vector(solar) , q = 10 , k = 4 , show.beta = TRUE)
+summary(fit2)
+checkresiduals(fit2$model)
+
+vif.fit2 = vif(fit2$model)
+vif.fit2>10
+
+#We impose a 4th order polynomial restriction on the lag distribution of the model as it gives us the highest adjusted R^2 which is 0.3017  which is still  quite low according to general standard values of good fit models hence we will move on to other potential better DLM models 
+
+#The Koyck DLM
+fit3 = koyckDlm(x = as.vector(prec) , y = as.vector(solar))
+summary(fit3)
+checkresiduals(fit3$model)
+
+vif.fit3 = vif(fit3$model)
+vif.fit3>10
+
+#The Koyck model fits well compared to the earlier two distributed lag models with an adjusted R^2 of 0.7591. The varaince inflation factor test suggets no multicollinearity. This is good but we need still need to explore the dynamic linear and exponenetial smoothing models. 
+
+#Autoregressive DLM
+
+for (i in 1:5){
+  for(j in 1:5){
+    fit4.1 = ardlDlm(x = as.vector(prec) , y = as.vector(solar), p = i , q = j )
+    cat("p = ", i, "q = ", j, "AIC = ", AIC(fit4.1$model), "BIC = ", BIC(fit4.1$model),"\n")
+  }
+}
+
+#the Autoregressive loop suggests that we need to take p = 4 and q=5 . These two values return the lowest AIC and BIC score 
+
+fit4 = ardlDlm(x = as.vector(prec) , y = as.vector(solar), p = 4 , q = 5)$model
+summary(fit4)
+checkresiduals(fit4)
+
+vif.fit4 = vif(fit4)
+vif.fit4>10
+
+#The autoregressive model has the highest adjusted R^2(0.9328) compared to all the other distributed lag models. THe VIF suggets multicollinearity through inclusion of the dependant variable. Certain coefficeints are significant as well. 
+#Let us forecast the future 2 year period for solar radiation values using the precipitation measurements (predictor series) for the months from January 2015 to December 2016 
+
+fit4 = ardlDlm(x = as.vector(prec) , y = as.vector(solar) , p = 4 , q = 5)
+
+# Model is fitted again without "$model" to get all outputs
+
+forecasts.ardldlm = dLagM::forecast(model = fit4 ,  x = c(0.189009998 , 0.697262522, 0.595213491, 0.487388526, 0.261677017, 0.808606651, 0.94186202, 0.905636325, 1.059964682, 0.341438784, 0.525805322, 0.602471062, 0.109860632, 0.781464707, 0.69685501, 0.502413906, 0.649385609, 0.745960773, 0.663047123, 0.533770112, 0.61542621, 0.54606508, 0.142673325, 0.013650407) , h = 12)$forecasts
+
+forecasts.ardldlm
+
+#Plotting te forecast for the solar radiation values for the 2 yea period using the autoregressive distributed lag model
+
+y.extended = c(solar , forecasts.ardldlm)
+
+{
+plot(ts(y.extended),type="l",xaxt="n", ylim= c(0, 60), 
+ylab = "Monthly average horizontal solar radiation ", xlab = "Month", 
+main="Monthly average horizontal solar radiation with 24 months ahead forecast using the Autoregressive distributed lag models and monthly precipitation values ")
+lines(dataset$ppt,col="Red",type="l")
+legend("topleft",lty=1, text.width = 16, 
+       col=c("black","red"), 
+       c("ARDL", "Precipitaton"))
+}
+
+MASE(fit1, fit2, fit3, fit4)
+
+#Clearly we can see model 4 has the lowest MASE so we are correct in using the autoregressive distributed lag model to forecast the 2 year period for solar radiation using the given precipitation measurements (predictor series) for the months from January 2015 to December 2016 at the exact same locations. 
+````
+
+#DYNAMIC MODELS 
+
+Now let us implement the dynamic models
+
+````{r}
+ 
+plot(solar,ylab='Monthly average horizontal solar radiation ',xlab='Year',main = "Time series plot of monthly Monthly average horizontal solar radiation ")
+
+points(y=solar,x=time(solar), pch=as.vector(season(solar)))
+
+````
+
+What we gather from the seasonal monthly average solar radiation plot with the seasonal pattern visible using the season funciton,  is that that there is no intervention point that really changes the pattern of the the seasonnality , trend or variance. In 1960 the highest radiation was recorded in July and the same pattern continues right up 2010 and beyond. 
+So we can entirely skip the modelling of dynamic models for this data set as there is no intervention analysis required 
+
+#Exponential Smoothing Methods
+
+In this section, we will cover simple exponential smoothing (N,N), Holt’s linear method (A,N), the damped trend method (Ad,N) and Holt-Winters’ seasonal method (A,A and A,M).
+
+````{r}
+ 
+fit5<- ses(solar, alpha = 0.2, initial="simple", h=2)
+summary(fit5) 
+checkresiduals(fit5)
+
+#MASE 1.223552
+
+fit6<-ses(solar, alpha = 0.8, initial="simple", h=2)
+summary(fit6) 
+checkresiduals(fit6)
+
+#MASE 0.7514636
+
+fit7<-ses(solar, initial="simple", h=2) 
+summary(fit7) 
+checkresiduals(fit7)
+
+#Letting the software estimate alpha , MASE 0.636771
+
+
+````
+
+From the simple exponential smoothing models we can see that after trying  2 different values of alpha and then letting the software estimate the value by not entering the arguemnt alpha the lowest MASE is from the 3 models is 0.636771. This makes sense as simple exponential smoothing  works best for data that have no trend, seasonality, or other underlying patterns.
+
+
+#Holts Linear Method 
+
+Lets move on to Holts Linear Method 
+
+Holts linear extends simple exponential smoothing to linear exponential smoothing to be able include trends to the forecasting model. 
+
+We can visually inspect from the monthly average solar time series plot that there isnt a discernible trend to the series so the assumption here is that the Holts linear method might not be the best fit as there is more seasonality to the time series plot than a trend component. 
+
+In  Holt's Linear we have 2 smoothing constants Alpha and Beta , for the two components level and the growth and both the smoothing constants are between 0 and 1 
+
+````{r}
+
+# Set alpha and beta
+fit8 <- holt(solar, alpha=0.8, beta=0.1, initial="simple", h=2)
+summary(fit8) 
+checkresiduals(fit8)
+#MASE 0.7835783
+
+
+# Let the software estimate both alpha and beta
+fit9 <- holt(solar, initial="simple", h=2)
+summary(fit9) 
+checkresiduals(fit9)
+#MASE 0.4610361
+
+# Brown’s double exponential smoothing
+fit10 <- holt(solar, alpha=0.2, beta=0.2, initial="simple", h=2) 
+summary(fit10) 
+checkresiduals(fit10)
+#MASE 1.442858
+
+# Simple exponential smoothing with drift
+fit11 <- holt(solar,  beta=0, initial="simple", h=2)
+summary(fit11) 
+checkresiduals(fit11)
+#MASE 0.6441896
+
+# Fit with exponential trend
+fit12 <- holt(solar, alpha=0.1, beta=0.8, initial="simple", exponential=TRUE, h=2) 
+summary(fit12) 
+checkresiduals(fit12)
+#MASE 2.490218
+
+# Fit with additive damped trend
+fit13 <- holt(solar, alpha=0.8, beta=0.2, damped=TRUE, initial="simple", h=2)
+summary(fit13) 
+checkresiduals(fit13)
+#MASE 0.6856393
+
+
+# What can be gathered from the Holts linear Method is that when we let the software estimate the Alpha and the Beta we get the lowest MACE 0.4610361 . R estimated Smoothing parameters for fit 5 :alpha = 0.9165   beta  = 1
+
+#This still does not give us a standard MACE value that should accompany a model which is a best fit for a time series dataset 
+
+#We will continue with the other modelling methods before we arrive at the best MACE. 
+
+````
+
+
+#Holt-Winters’ Trend and Seasonality Method
+
+In Holts winter is used to take of seasonality in the series and has smoothing components/equations for level trend and seasonality 
+
+````{r}
+
+#Holts Winter's additive 
+fit14 <- hw(solar,seasonal="additive", h=2*frequency(solar))
+summary(fit14) 
+checkresiduals(fit14)
+#MACE 0.24716
+
+#Holts Winters'Additive Damped 
+fit15 <- hw(solar ,seasonal="additive",damped = TRUE, h=2*frequency(solar))
+summary(fit15) 
+checkresiduals(fit15)
+#MACE 0.2461797
+
+#Holts Winters' Multiplicative  
+fit16 <- hw(solar,seasonal="multiplicative", h=2*frequency(solar))
+summary(fit16) 
+checkresiduals(fit16)
+#MACE 0.2233077
+
+#Holts Winters' Multiplicative Damped
+fit17 <- hw(solar,seasonal="multiplicative",damped =TRUE, h=2*frequency(solar))
+summary(fit17) 
+checkresiduals(fit17)
+#MACE 0.2035619
+
+#Holts Winters' Multiplicative Exponential 
+fit18  <- hw(solar,seasonal="multiplicative",exponential = TRUE, h=2*frequency(solar))
+summary(fit18) 
+checkresiduals(fit18)
+#MACE 0.2320404
+
+#The lowest MACE from the exponential smoothing models comes from Holts Winters' Multiplicative Damped fit 13 i.e 0.2035619
+#This is the lowest MACE so far but we still have the corresponding state space models to cover for the solar radiation series to uncover which is the best model for forecasting the solar radiation series. 
+
+
+````
+
+
+#State space models 
+For each exponential smoothing method, there are two corresponding state-space models according to their error terms (one additive and one multiplicative). 
+
+We will use the triplet to denote the state-space model correspondents of exponential smoothing models. Each triplet will include an additional letter either A or M to denote the type of error terms and the remaining two letters will denote trend and seasonality. 
+
+The triplet (E,T,S) refers to the three components: error, trend and seasonality. For example, ETS(A,A,N) means that the corresponding model has additive errors, additive trend and no seasonality. 
+
+ETS(M,Md,M) refers to a model with multiplicative errors, a damped multiplicative trend and multiplicative seasonality. ETS can also be considered an abbreviation of ExponenTial Smoothing.
+
+Lets try and fit the state space models to the monthly average solar radiation series 
+
+````{r}
+
+#Additive Error , No trend , No Seasonality 
+fit19 = ets(solar, model="ANN")
+summary(fit19) #MASE 0.6368203
+checkresiduals(fit19)
+
+#Additive Error , Additive trend , No Seasonality 
+fit20 = ets(solar, model="AAN")
+summary(fit20)#MASE 0.4334691
+checkresiduals(fit20)
+
+#Additive Error , Additive damped trend , No Seasonality 
+fit21 = ets(solar, model="AAN", damped = TRUE)
+summary(fit21)#MASE 0.4334691
+checkresiduals(fit21)
+
+#Additive Error , Additive trend , Additive Seasonality 
+fit22 = ets(solar, model="AAA")
+summary(fit22) #MASE 0.2461797
+checkresiduals(fit22)
+
+#Multiplicative Error , No trend , No Seasonality 
+fit23 = ets(solar, model="MNN")
+summary(fit23) #MASE 0.6369599
+checkresiduals(fit23)
+
+#Multiplicative Error , Additive trend , No Seasonality 
+fit24 = ets(solar, model="MAN")
+summary(fit24)#MASE 0.3222574
+checkresiduals(fit24)
+
+#Multiplicative Error , Additive damped trend , Additive Seasonality 
+fit25 = ets(solar, model="MAA", damped = TRUE)
+summary(fit25) #MASE 0.6583987
+checkresiduals(fit25)
+
+#Multiplicative Error , No trend , Additive Seasonality 
+fit26 = ets(solar, model="MNA")
+summary(fit26)#MASE  0.3798095
+checkresiduals(fit26)
+
+# Autofit finds the best fit triplet which gives the least autocorrelated - BG test
+fit27 = ets(solar)
+summary(fit27)
+checkresiduals(fit27)
+#MASE 0.2461797 - (A,ad,A)- most viable model
+
+#Multiplicative Error , Multiplicative trend , Multiplicative Seasonality 
+fit28 = ets(solar, model = "MMM")
+summary(fit28)#MASE 0.3137226
+checkresiduals(fit28)
+
+
+````
+
+In the state space models section we just need to check the MACE value of fit23 as this provides us with the best triplet ETS(A,Ad,A)
+The MACE value is 0.2461797
+
+If we compare this value with the MACE from  Holts Winters' Multiplicative Damped (0.2035619) it is more. 
+
+Hence we will choose Holts Winters' Multiplicative Damped to forecast the 2 years (24 months) ahead forecast 
+
+#Plotting the forecast
+
+Our chosen model with the lowest MACE (0.2035619) for plotting the 2 years ahead forecast is Holts Winters' Multiplicative Damped
+
+````{r}
+
+plot(fit17 ,ylab="Monthly average horizontal solar radiation",
+     plot.conf=FALSE, type="l", fcol="white", xlab="Year",
+     main="Monthly average horizontal solar radiation series with 24 months ahead forecast from Holts Winters' Multiplicative Damped")
+lines(fitted(fit14), col="red", lty=1)
+lines(fitted(fit15), col="green", lty=1)
+lines(fitted(fit16), col="cyan", lty=1)
+lines(fitted(fit17), col="brown", lty=1)
+lines(fitted(fit18), col="blue", lty=1)
+lines(fit14$mean, type="l", col="red")
+lines(fit15$mean, type="l", col="green")
+lines(fit16$mean, type="l", col="cyan")
+lines(fit17$mean, type="l", col="brown")
+lines(fit18$mean, type="l", col="blue")
+legend("topleft",lty=0.1, pch=0.1,cex=0.5, col=1:6, 
+       c("data","Holt Winters' Additive", "Holt Winters' Additive Damped", "Holt Winters' Multiplicative", "Holts Winters' Multiplicative Damped", "Holts Winters' Multiplicative Exponential"))
+
+````
+
+#TASK 2
+
+In this task we need to analyse the correlation between the quarterly property price index (PPI) in Melbourne and quarterly population change 
+
+````{r}
+
+dataset1<- read.csv("C:/Users/axelp/Documents/RMIT/Semester 2/Forecasting/Assignment 2/Task 2/data2.csv")
+
+ppi<- ts(dataset1, start=c(2003,3),frequency = 4)
+
+head(ppi)
+cor(ppi[,2:3])
+
+price = ppi[,2]
+pop = ppi[,3]
+
+#Looking the values of the change in population series we can notice that the values are quite large in comparison to the property price index hence we will take the log of the change in population series in order to normalise the scale
+
+price.pop=ts.intersect(price,log(pop))
+
+plot(price.pop,yax.flip=T)
+
+acf(price, max.lag = 50, main="Sample ACF for price")
+
+acf(log(pop) , max.lag = 50, main="Sample ACF for population")
+
+# We can see that from the ACF plots that there are significant lags in both the series. This means that both the series are autocorrelated with a lagged version of itself for the first two to three lags . 
+
+#This essentially means that the way the series' changes will change over time and there is no sense of predictibality about where the time series is going to go. 
+
+#Let us run the ADF unit root test for both the series to further corroborate this information. 
+
+a=ar(diff(price))$order
+adf.test(price, k=a)
+
+b=ar(diff(pop))$order
+adf.test(pop, k=b)
+
+#We can tell from the ACF plot and the adf test that both the price and the population chane series is non-statioanry. The assumption or the null hypothesis we make in the ADF unit root test for testing stationarity/non-stationarity is that series is non-stationary. After the running the test we get a p vlaue of greater than the 0.05 significance level. This means that we fail to reject the null hypothesis that the series is non-stationary. 
+
+# Lets check the  Cross covariance function plot for the two series to determine if any of the cross-correlations significantly different from zero. 
+
+ccf(as.vector(price), as.vector(log(pop)),ylab='CCF', main = " CCF between population and price")
+
+#From the sample CCF between property price index in Melbournwe and the change in quarterly population over the previous quarter in Victoria we can see that the cross correlations between lags -8 and 13 are significantly different from zero according to the 1.96/n rule. 
+
+#There doesnt appear to be any plausible reason for why the two series could be so highly autocorrelated other than the non-stationarity of both the time series data sets despite the fact that response and the covariate series are independant of each other . 
+
+# With highly autocorrelated series it is diffuclt to clearly establish whether there is indeed any relationship in the way of dependance between the two series. 
+
+#One way to extricate the linear reltionaship between the two series is through prewhitening. Prewhitening means to make one of the series uncorrelated. This is can be done through first differencing the data to make the series stationary . We can then fit the model Yt=ϕ1Yt−1+ϕ2Yt−2+⋅+ϕpYt−p+et to the Xseries .
+
+#In  our case since there is a trend in the property price index series and possible seasonality and suggestive trend in the change in population series from the previous quarter , both series can be made stationary through first order regular differecning and then prewhitening can be carried out by filtering both differenced series by an AR model fitted to the differenced propert price index  data.
+
+diff.pw = ts.intersect(diff(diff(price,4)),diff(diff(log(pop),4)))
+prewhiten(as.vector(diff.pw[,1]),as.vector(diff.pw[,2]),ylab='CCF', main=" CCF after prewhitening ")
+
+````
+
+Thus, it seems that the property price index series and the change in population from the previous quarter are in fact largely uncorrelated, and the strong cross-correlation pattern found between the raw data series is indeed spurious.
+
