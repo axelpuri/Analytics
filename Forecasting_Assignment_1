@@ -1,0 +1,921 @@
+---
+title: "Untitled"
+author: "Akhil Puri"
+date: "21/08/2019"
+output:
+  word_document: default
+  word: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(readr)
+library(dLagM)
+library(forecast)
+library(expsmooth)
+library(TSA)
+library(Hmisc)
+library(car)
+library(AER)
+library(x12)
+
+#Reading in the data which will then make the ASX, gold , crude and copper data appear as a monthly series 
+#which can then easily be converted into a time series . 
+
+ASX = read_csv("C:/Users/axelp/Documents/RMIT/Semester 2/Forecasting/Assignment 1/ASX_data.csv")
+
+class(ASX)
+
+#the current data type of the series is data frame .
+
+ASX
+
+#The data appears as a 161 rows X 5 colums data 
+
+#Coverting the ASX serie data into a time series 
+
+ASX.ts = ts(ASX$`ASX price`, start = c(2004,1), frequency = 12) 
+
+class(ASX.ts)
+
+#Now the data has been converted to a time series data
+
+#Let us check the head and the data to see how it appears from the earlier format 
+
+head(ASX.ts)
+
+ASX.ts
+
+#Now that the series has been converted to a time series let us carry out some unit tests to determine stationarity / non-stationarity 
+#of the data set for each of the individaul series included in the data set
+
+#ACF and PACF for the ASX series of the dataset 
+
+acf(ASX.ts, main="Sample ACF for ASX monthly average series starting January 2004 ")
+
+#From the sample ASX graph we can see that the series is non-stationary as there is a gradual decay 
+
+#Using the 2 unit root tests Dickey-Fuller (ADF) and Phillips-Perron (PP) tests to validate whether the ASX series is stationary or not 
+#the first ADF determines the value of the length of the lag 
+k = trunc(12*((length(ASX.ts)/100)^(1/4)))
+
+print(k)
+
+library(tseries)
+adf.test(ASX.ts, k=k)
+
+#the second test implements the test with the default value of lag length, which is k=⌈(N−1)1/3⌉.
+
+test = adf.test(ASX.ts)
+test$parameter
+
+print(test)
+
+#For the PP test, we have two options for the lag length. If lshort parameter is set to TRUE 
+#we get k=⌈4∗(N/100)1/4)⌉, otherwise we get k=⌈12∗(N/100)1/4)⌉.
+
+PP.test(ASX.ts, lshort = TRUE)
+
+PP.test(ASX.ts, lshort = FALSE)
+
+#Both the unit root tests and the 2 versions of both the tests give us a p-value which is greater #than .05 significance level which 
+#leads us to fail to reject the null hypothesis which is that the serie is non-stationary 
+
+#Converting the gold serie from the data frame ASX into a time series 
+
+gold.ts = ts(ASX$`Gold price`, start = c(2004,1), frequency = 12) 
+
+class(gold.ts)
+
+#Now the data has been converted to a time series data
+
+#Checking the class of the serie data  
+
+head(gold.ts)
+
+gold.ts
+
+gold.ts
+
+#Now that the series has been converted to a time series let us carry out some unit tests to determine stationarity / non-stationarity 
+#of the data set for each of the individaul series included in the data set
+
+#ACF and PACF for the ASX series of the dataset 
+
+acf(gold.ts, main="Sample ACF for monthly average price of Gold  starting January 2004 ")
+
+#From the sample ASX graph we can see that the series is non-stationary as there is a gradual decay 
+
+#Using the 2 unit root tests Dickey-Fuller (ADF) and Phillips-Perron (PP) tests to validate whether the monthly average gold price series 
+#is stationary or not 
+#the first ADF determines the value of the length of the lag
+
+k = trunc(12*((length(gold.ts)/100)^(1/4)))
+
+print(k)
+
+library(tseries)
+adf.test(gold.ts, k=k)
+
+#the second test implements the test with the default value of lag length, which is k=⌈(N−1)1/3⌉.
+
+test = adf.test(gold.ts)
+test$parameter
+
+print(test)
+
+#For the PP test, we have two options for the lag length. If lshort parameter is set to TRUE 
+#we get k=⌈4∗(N/100)1/4)⌉, otherwise we get k=⌈12∗(N/100)1/4)⌉.
+
+PP.test(gold.ts, lshort = TRUE)
+
+PP.test(gold.ts, lshort = FALSE)
+
+#Both the unit root tests give us a p-value which is greater than .05 significance level which 
+#leads us to fail to reject the null hypothesis which is that the serie is non-stationary 
+                        
+#Now converting the Crude Oil (Brent)_USD/bbl from the data frame ASX into a time series 
+
+crude.ts = ts(ASX$`Crude Oil (Brent)_USD/bbl`, start = c(2004,1), frequency = 12)
+
+class(crude.ts)
+
+#Now the Crude Oil (Brent)_USD/bbl montly average price data has been converted to a time series data
+
+#Checking the class and the crude time serie data  
+
+head(crude.ts)
+
+crude.ts
+
+#Now that the series has been converted to a time series let us carry out some unit tests to determine stationarity / non-stationarity 
+#of the data set for each of the individaul series included in the data set
+
+#ACF for the crude time series of the dataset 
+
+acf(crude.ts, main="Sample ACF for monthly average price of crude  starting January 2004 ")
+
+#From the sample ASX graph we can see that the series is non-stationary as there is a gradual decay 
+
+#Using the 2 unit root tests Dickey-Fuller (ADF) and Phillips-Perron (PP) tests to validate whether the monthly average gold price series 
+#is stationary or not 
+#the first ADF determines the value of the length of the lag
+
+k = trunc(12*((length(crude.ts)/100)^(1/4)))
+
+print(k)
+
+library(tseries)
+adf.test(crude.ts, k=k)
+
+#the second test implements the test with the default value of lag length, which is k=⌈(N−1)1/3⌉.
+
+test = adf.test(crude.ts)
+test$parameter
+
+print(test)
+
+#For the PP test, we have two options for the lag length. If lshort parameter is set to TRUE 
+#we get k=⌈4∗(N/100)1/4)⌉, otherwise we get k=⌈12∗(N/100)1/4)⌉.
+
+PP.test(crude.ts, lshort = TRUE)
+
+PP.test(crude.ts, lshort = FALSE)
+
+#Both the unit root tests give us a p-value which is greater than .05 significance level which 
+#leads us to fail to reject the null hypothesis which is that the crude serie is non-stationary     
+
+#Converting the Copper_USD/tonne serie from the data frame ASX into a time series 
+
+copper.ts = ts(ASX$`Copper_USD/tonne`, start = c(2004,1), frequency = 12) 
+
+class(copper.ts)
+
+#Now the copper monthly average price data has been converted to a time series data
+
+#Checking the class of the copper serie data  
+
+head(copper.ts)
+
+copper.ts
+
+
+#Now that the series has been converted to a time series let us carry out some unit tests to determine stationarity/ non-stationarity 
+#of the data set for each of the individaul series included in the data set
+
+#ACF for the copper series of the dataset 
+
+acf(copper.ts, main="Sample ACF for monthly average price of copper prices in USD/tonne starting January 2004 ")
+
+#From the sample ASX graph we can see that the series is non-stationary as there is a gradual decay 
+
+#Using the 2 unit root tests Dickey-Fuller (ADF) and Phillips-Perron (PP) tests to validate whether the monthly average gold price series 
+#is stationary or not 
+#the first ADF determines the value of the length of the lag
+
+k = trunc(12*((length(copper.ts)/100)^(1/4)))
+
+print(k)
+
+library(tseries)
+adf.test(copper.ts, k=k)
+
+#the second test implements the test with the default value of lag length, which is k=⌈(N−1)1/3⌉.
+
+test = adf.test(copper.ts)
+test$parameter
+
+print(test)
+
+#For the PP test, we have two options for the lag length. If lshort parameter is set to TRUE 
+#we get k=⌈4∗(N/100)1/4)⌉, otherwise we get k=⌈12∗(N/100)1/4)⌉.
+
+PP.test(gold.ts, lshort = TRUE)
+
+PP.test(gold.ts, lshort = FALSE)
+
+#Both the unit root tests give us a p-value which is greater than .05 significance level which 
+#leads us to fail to reject the null hypothesis which is that the copper serie is non-stationary 
+
+#Taking the first difference of the ASX ordinaries serie to make it stationary 
+
+#First difference of the ASX series 
+diff(ASX.ts)
+# Create an intersection of original, first difference of the series
+ asx.intersect = ts.intersect(ASX.ts , diff(ASX.ts))
+colnames(asx.intersect) =  c("Original","1st difference")
+plot(asx.intersect , yax.flip=T)                       
+
+#ACF of the first difference of the ASX ordinaries
+
+acf(diff(ASX.ts), main="Sample ACF for first difference of monthly average price of ASX ordinaries starting January 2004 ")
+
+# We can now see that the ASX after first differencing is stationary    
+
+#Taking the first difference of the gold prices series to make it stationary 
+
+#First difference of the ASX series 
+diff(gold.ts)
+# Create an intersection of original, first difference of the series
+gold.intersect = ts.intersect(gold.ts , diff(gold.ts))
+colnames(gold.intersect) =  c("Original","1st difference")
+plot(gold.intersect , yax.flip=T)                       
+
+#ACF of the first difference of gold prices series   
+
+acf(diff(gold.ts), main="Sample ACF for first difference of monthly average price of gold starting January 2004 ")
+
+# We can now see through the ACF that the monthly average gold prices series after first differencing is stationary 
+
+#Taking the first difference of the monthly average crude prices series to make it stationary 
+
+#First difference of the crude series 
+
+diff(crude.ts)
+
+# Create an intersection of original, first difference of the series
+crude.intersect = ts.intersect(crude.ts , diff(crude.ts))
+colnames(crude.intersect) =  c("Original","1st difference")
+plot(crude.intersect , yax.flip=T)                       
+
+#ACF of the first difference crude prices series    
+
+acf(diff(crude.ts), main="Sample ACF for first difference of monthly average price of crude starting January 2004 ")
+
+# We can now see through the ACF that the monthly average crude prices serie after first differencing is stationary 
+
+#Taking the first difference of the monthly average copper prices series to make it stationary 
+
+#First difference of the copper series 
+
+diff(copper.ts)
+
+# Create an intersection of original, first difference of the series
+copper.intersect = ts.intersect(copper.ts , diff(copper.ts))
+colnames(copper.intersect) =  c("Original","1st difference")
+plot(copper.intersect , yax.flip=T)                       
+
+#ACF of the first difference copper prices series    
+
+acf(diff(copper.ts), main="Sample ACF for first difference of monthly average price of copper starting January 2004 ")
+
+# We can now see through the ACF that the monthly average copper prices serie after first differencing is stationary 
+
+
+
+
+#TASK2
+
+#Let us check for seasonality in the data set 
+
+#Plotting the ACF of asx.ts 
+
+acf(ASX.ts, main="Sample ACF for ASX monthly average series starting January 2004 ")
+# it appears there is no seasonality through the acf 
+# let us use the arima x12 decomposition to further validate whether there is seasonal component to the ASX series 
+
+library(x12)
+asx.x12 = x12(ASX.ts)
+plot(asx.x12 , sa=TRUE , trend=TRUE)
+
+#the asx.x12 shows us that the seasonally adjusted ASX series is not deviating from the original series which proves 
+#that there is no seasonal component , hence we do not need to adjust for seasonality or subtract the seasonal component 
+#since there is none
+
+#Now we need to explore the impact of the trend component of the time series on the given dataset 
+#Using the multiplicative decomposition to establish existnce of a trend in the ASX series 
+
+ASX.classical.mult <- decompose(ASX.ts, type="multiplicative")
+plot(ASX.classical.mult)
+
+#We can see there is an upward trend in the series. 
+
+#Lets try and take care of the trend by doing transformation . As there is no discernible changing variance through visual inspection , we still transform the series to take of changing variance if there is any before applying differencing to detrend the series  
+
+plot(ASX.ts)
+
+lambda = BoxCox.lambda(ASX.ts)
+lambda
+
+#The centre of 95% confidence interval is 0.05. So, we can use λ=0.05 for the transformation.
+
+lambda = 1.99
+BC.ASX = ((ASX.ts^(lambda)) - 1) / lambda
+plot(BC.ASX,ylab='monthly averages of ASX All Ordinaries (Ords) Price Index)',xlab='Time',type='o', main="Transformed time series of monthly averages of ASX All Ordinaries (Ords) Price Index")
+
+#The 95% confidence interval for λ contains the value of λ=0 quite near its centre and strongly suggests a logarithmic transformation (λ=0) for these data. So, we can directly apply the log transformation.
+
+BC.ASX = log(ASX.ts)
+plot(BC.ASX,ylab='monthly averages of ASX All Ordinaries (Ords) Price Index)',xlab='Time',type='o', main="Log Transformed time series of monthly averages of ASX All Ordinaries (Ords) Price Index")
+
+#Applying first differencing to get rid of the trend 
+
+diff(BC.ASX)
+
+data(ASX.ts)
+# Create an intersection of original, first and second difference of the series
+
+ASX.detrend = ts.intersect(ASX.ts , diff(BC.ASX))
+colnames(ASX.detrend) =  c("Original","1st difference")
+plot(ASX.detrend , yax.flip=T)
+
+
+#Plotting the original series asx.ts to comment on the  evidence of changing variance through time, patterns of moving average and autoregression behaviour,
+#Any sign of an intervention.
+
+plot(ASX.ts,ylab='monthly averages of ASX All Ordinaries (Ords) Price Index) ',xlab='Time',
+     type='o', main="Time series of monthly averages of ASX All Ordinaries (Ords) Price Index")
+
+# There is a Autoregressive behavior (succeeeding points), no moving average (consecutive observations are not on the opposite sides of the 
+#mean level , No discerible /slight changing variance. Two intervention points around 2008 and 2009 
+
+
+
+
+#Similarly plotting the ACF of gold.ts to check for seasonality in the series 
+
+acf(gold.ts, main="Sample ACF for monthly average gold prices series starting January 2004 ")
+
+# it appears there is no seasonality in gold.ts through the acf 
+# let us use the arima x12 decomposition to further corroborate whether there is seasonal component to the ASX series 
+
+gold.x12 = x12(gold.ts)
+plot(gold.x12 , sa=TRUE , trend=TRUE)
+
+#the gold.x12 shows us that the seasonally adjusted ASX series is not deviating from the original series which further proves 
+#that there is no seasonal component , hence we do not need to adjust for seasonality or subtract the seasonal  component 
+#since there is none
+
+#Now we need to explore the impact of the trend component of the time series on the given dataset 
+#Using the multiplicative decomposition to establish existnce of a trend in the gold series 
+
+gold.classical.mult <- decompose(gold.ts, type="multiplicative")
+plot(gold.classical.mult)
+
+#We can see there is an upward trend in the gold series 
+
+#Lets try and take care of the trend by doing transformation . As there is no discernible changing variance through visual inspection , we still transform the series to take of changing variance if there is any before applying differencing to detrend the series  
+
+plot(gold.ts)
+
+BC = BoxCox.ar(gold.ts)
+
+BC$ci
+
+#The centre of 95% confidence interval is 0.05. So, we can use λ=0.05 for the transformation.
+
+lambda = 0.05
+BC.gold = ((gold.ts^(lambda)) - 1) / lambda
+plot(BC.gold,ylab='Monthly averages of Gold Price)',xlab='Time',type='o', main="Transformed time series of monthly averages of of Gold Price")
+
+#The 95% confidence interval for λ contains the value of λ=0 quite near its centre and strongly suggests a logarithmic transformation (λ=0) for these data. So, we can directly apply the log transformation.
+
+BC.gold = log(gold.ts)
+plot(BC.gold, ylab='Monthly averages of Gold Price)',xlab='Time',type='o', main="Log Transformed time series of monthly averages of of Gold Price")
+
+#Applying first differencing to get rid of the trend 
+
+diff(BC.gold)
+
+# Create an intersection of original, first and second difference of the series
+
+gold.detrend = ts.intersect(gold.ts , diff(BC.gold))
+colnames(gold.detrend) =  c("Original","1st difference")
+plot(gold.detrend , yax.flip=T)
+
+#Plotting the original series gold.ts to comment on the  evidence of changing variance through time, patterns of moving average and autoregression behaviour,
+#Any sign of an intervention.
+
+plot(gold.ts,ylab='monthly averages of Gold Price ) ',xlab='Time',
+     type='o', main="Time series of monthly averages of Gold prices starting January 2004")
+
+# There is a Autoregressive behavior (succeeeding points), no moving average (consecutive observations are not on the opposite sides of the 
+#mean level , No discerible changing variance through visual inspection . Two minor intervention points around 2009 and 2013 
+
+
+#Similarly plotting the ACF of crude.ts to check for seasonality in the series 
+
+acf(crude.ts, main="Sample ACF for monthly average crude prices series starting January 2004 ")
+
+# it appears there is no seasonality in gold.ts through the acf 
+# let us use the arima x12 decomposition to further corroborate whether there is seasonal component to the crude series 
+
+crude.x12 = x12(crude.ts)
+plot(gold.x12 , sa=TRUE , trend=TRUE)
+
+#the crude.x12 shows us that the seasonally adjusted crude series is not deviating from the original series which furthr proves 
+#that there is no seasonal component , hence we do not need to adjust for seasonality or subtract the seasonal  component 
+#since there is none
+
+#Now we need to explore the impact of the trend component of the time series on the given dataset 
+#Using the multiplicative decomposition to establish existnce of a trend in the gold series 
+
+crude.classical.mult <- decompose(crude.ts, type="multiplicative")
+plot(crude.classical.mult)
+
+#We can see there is no real discerible trend in the crude series (equal number of peaks and troughs, graph goes up and down)
+
+#Plotting crude.ts to comment on the  evidence of changing variance through time, patterns of moving average and autoregression behaviour,
+#OR any sign of an intervention.
+
+plot(crude.ts,ylab='Monthly averages of crude Price ) ',xlab='Time',
+     type='o', main="Time series of monthly averages of Crude Oil (Brent, USD/bbl)  prices starting January 2004")
+
+# There is a Autoregressive behavior (succeeeding points), no moving average (consecutive observations are not on the opposite sides of the 
+#mean level , No real discerible changing variance/ slight changing variance through visual inspection. 4 intervention points around mid 2008 , 2009 , mid 2014 and 2016. 
+
+
+
+#Similarly plotting the ACF of copper.ts to check for seasonality in the series 
+
+acf(copper.ts, main="Sample ACF for monthly average copper prices series starting January 2004 ")
+
+# it appears there is no seasonality in gold.ts through the acf 
+# let us use the arima x12 decomposition to further corroborate whether there is seasonal component to the ASX series 
+
+copper.x12 = x12(copper.ts)
+plot(copper.x12 , sa=TRUE , trend=TRUE)
+
+#The copper.x12 shows us that the seasonally adjusted copper series is not deviating from the original series which furthr proves 
+#that there is no seasonal component , hence we do not need to adjust for seasonality or subtract the seasonal  component 
+#since there is none
+
+#Now we need to explore the impact of the trend component of the time series on the given dataset 
+#Using the multiplicative decomposition to establish existnce of a trend in the copper series 
+
+copper.classical.mult <- decompose(copper.ts, type="multiplicative")
+plot(copper.classical.mult)
+
+#We can see there is no real discerible trend in the copper price time series through visual inspection. (more or less equal nnumber of peaks and troughs)
+
+#Plotting copper.ts to comment on the  evidence of changing variance through time, patterns of moving average and autoregression behaviour,
+#OR any sign of an intervention.
+
+plot(copper.ts,ylab='Monthly averages of copper Price ) ',xlab='Time',
+     type='o', main="Time series of monthly averages of Copper (USD/tonne) prices starting January 2004")
+
+# There is a Autoregressive behavior (succeeeding points), no moving average (consecutive observations are not on the opposite sides of the mean level , No real discerible changing variance. Three  intervention points around mid 2007, 2009, and 2011
+
+
+
+
+
+
+
+
+#TASK 3 -  Need to find the most accurate and suitable distributed lag model for the ASX price index.
+
+# Fit a finite DLM with a lag length of 4 and do the diagnostic checking.
+
+
+# Find the finite lag length based on AIC and BIC for this data
+# We can change  q and compare AIC/BIC values
+
+for ( i in 1:10){
+  model1.1 = dlm( x = as.vector(gold.ts) , y = as.vector(ASX.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model1.1$model), "BIC = ", BIC(model1.1$model),"\n")
+}
+
+# We go for the smallest AIC/BIC.
+
+
+# "$model" is added here to get only the model component
+
+model1.2 = dlm( x = as.vector(gold.ts) , y = as.vector(ASX.ts), q = 10 )
+summary(model1.2)
+checkresiduals(model1.2$model)
+
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+VIF.model1.2 = vif(model1.2$model) 
+
+VIF.model1.2
+
+VIF.model1.2 > 10
+#It is obvious that the estimates of the finite DLM coefficients are suffering from the multicollinearity. The adjusted Rsquare is negative and the Breusch-Godfrey test shows high serial correlation of order up to 15
+#Hence clearly this is not a suitable choice of model 
+
+
+
+
+
+
+
+# Find the finite lag length based on AIC and BIC for this data
+# We can change  q and compare AIC/BIC values
+for ( i in 1:10){
+  model2.1 = dlm( x = as.vector(gold.ts) , y = as.vector(ASX.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model1.1$model), "BIC = ", BIC(model1.1$model),"\n")
+}
+# We go for the smallest AIC/BIC.
+#The AIC and BIC values are all the same so it doesnt really matter what the finite lag length should be
+
+# Just to demonstrate this point we will use the lag length of 10 for the independant variable gold 
+
+model2.3 = polyDlm(x = as.vector(gold.ts) , y = as.vector(ASX.ts) , q = 10 , k = 2 , show.beta = TRUE)
+summary(model2.3)
+checkresiduals(model2.3$model)
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+VIF.model2.3 = vif(model2.3$model) 
+
+VIF.model2.3
+
+VIF.model2.3 > 10
+
+
+#the Breusch-Godfrey test is displayed to test the existence of serial correlation up to the displayed order. According to this test and ACF plot, we can conclude that the serial correlation left in residuals is highly significant. Also, from the time series plot and histogram of residuals, there is an obvious non-random pattern and very high residual values that violate general assumptions. There is also extremely high multicollinearity in the lags of the independant variable in the variance inflation factors test . 
+
+#In addition to the above facts the adjusted R sqaure value is very low so the polynomial distributed lag model is not a good choice for the choice of variables (Gold and ASX)
+
+
+
+
+# Fit the Koyck model for the dependant variable ASX and the independant variable gold to explore and elaborate on the suitability of the model 
+
+model3 = koyckDlm(x = as.vector(gold.ts) , y = as.vector(ASX.ts))
+summary(model3)
+checkresiduals(model3$model)
+
+summary(model3$model, diagnostics = TRUE)
+
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+VIF.model3 = vif(model3$model) 
+
+VIF.model3
+
+VIF.model3 > 10
+
+#The Breusch-Godfrey test is displayed to test the existence of serial correlation up to the displayed order. According to this test and ACF plot, we can conclude that the serial correlation left in residuals is not significant . Also, from the time series plot and histogram of residuals, there is a random pattern and no autocorrelation in the lags of the regressor hence not violating general assumptions. 
+#The VIF test shows values less than 10 futher corroborating the presence of no multicollinearity
+#The From the Weak Instruments line, we conclude that the model at the first stage of the least-squares fitting is significant at 5% level of significance. In this model, both δ2 and δ3 are significant at 5% level. Using the coefficients, we find the estimates of original parameters such that β^= 2.595e-03 and ϕ^=9.635e-01. So the weights will not  decline quickly at the rate of 9.635e-01. Thus, the latter lags of the gold prices will as much of an effect on the ASX monthly average prices as the earlier ones.    
+#From the Wu-Hausman test result in the model output, we reject the null hypothesis that the correlation between explanatory variable and the error term is zero (There is no endogeneity) at 5% level. So, there is a significant correlation between the explanatory variable and the error term at 5% level.
+#This model looks good so far better than the last two
+
+
+
+
+# Fit the autoregressive distributed lag models for the dependant variable ASX and the independant variable gold to explore and elaborate on the suitability of the model 
+
+# ardlDlm:
+for (i in 1:5){
+for(j in 1:5){
+model4 = ardlDlm(x = as.vector(gold.ts) ,
+y = as.vector(ASX.ts), p = i , q = j )
+cat("p = ", i, "q = ", j, "AIC = ", AIC(model4$model), "BIC = ", BIC(model4$model),"\n")
+}
+}
+
+model4.1 = ardlDlm(x =as.vector(gold.ts) ,
+y = as.vector(ASX.ts), p = 1 , q = 5 )
+
+summary(model4.1)
+
+
+
+
+# According to both AIC and BIC,  model4.3 is the most accurate one. We will display diagnostic plots of residuals from model4.3 to examine residuals.
+
+checkresiduals(model4.1$model)
+
+
+VIF.model4.1 = vif(model4.1$model) 
+
+VIF.model4.1
+
+VIF.model4.1 > 10
+
+#Adjusted R square value is 0.9491. The BG test gives us a p-value of 0.5333 through which we fail to reject the null hypothesis that there no serial correlation left in the resduals and can conclude that the serial correlation left in residuals is not significant. Also, from the time series plot and histogram of residuals, there is an obvious random pattern and low residual values that violate general assumptions.
+
+
+
+# Fit a finite DLM with a lag length of 4 and do the diagnostic checking for variables crude and ASX (dependant variable) .
+# Using the crude series as the independant/ regressor variable 
+
+model5 = dlm( x = as.vector(crude.ts) , y = as.vector(ASX.ts), q = 4 )
+summary(model5)
+checkresiduals(model5$model)
+
+# Find the finite lag length based on AIC and BIC for this data
+# We can change  q and compare AIC/BIC values
+
+for ( i in 1:10){
+  model5.1 = dlm( x = as.vector(gold.ts) , y = as.vector(ASX.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model5.1$model), "BIC = ", BIC(model5.1$model),"\n")
+}
+
+# We go for the smallest AIC/BIC which is q =10
+
+model5.2 = dlm( x = as.vector(crude.ts) , y = as.vector(ASX.ts), q = 10 )
+summary(model5.2)
+checkresiduals(model5.2$model)
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+VIF.model5.2 = vif(model5.2$model) 
+
+VIF.model5.2
+
+VIF.model5.2 > 10
+#It is obvious that the estimates of the finite DLM coefficients are suffering from the multicollinearity. Multiple R-squared:  0.05611 and Adjusted R-squared:  -0.01859 is low .  The Breusch-Godfrey test shows high serial correlation of order up to 15
+#From the VIF values, it is obvious that the estimates of the finite DLM coefficients are suffering from the multicollinearity
+#Hence clearly this is not a suitable choice of model.
+
+
+
+
+# Fit the Polynomial distributed lag model for the dependant variable ASX and the independant variable crude to explore and elaborate on the suitability of the model 
+# Find the finite lag length based on AIC and BIC for this data
+# We can change  q and compare AIC/BIC values
+for ( i in 1:10){
+  model6.1 = dlm( x = as.vector(crude.ts) , y = as.vector(ASX.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model5.1$model), "BIC = ", BIC(model5.1$model),"\n")
+}
+
+# We go for the smallest AIC/BIC.
+#The AIC and BIC values are all the same so it doesnt really matter what the finite lag length should be
+
+# Just to demonstrate this point we will use the lag length of 10 for the independant variable gold 
+
+model6.3 = polyDlm(x = as.vector(crude.ts) , y = as.vector(ASX.ts) , q = 10 , k = 2 , show.beta = TRUE)
+summary(model6.3)
+checkresiduals(model6.3$model)
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+VIF.model6.3 = vif(model6.3$model)
+
+VIF.model6.3
+
+VIF.model6.3 > 10
+
+
+#Multiple R-squared:  0.05293,	Adjusted R-squared:  0.03361 which is nowhere clsoe to idea . The Breusch-Godfrey test is displayed to test the existence of serial correlation up to the displayed order. According to this test and ACF plot, we can conclude that the serial correlation left in residuals is highly significant. Also, from the time series plot and histogram of residuals, there is an obvious non-random pattern and very high residual values that violate general assumptions. There is also extremely high multicollinearity in the lags of the independant variable in the variance inflation factors test . 
+#The polynomial distributed lag model is not a good choice for the choice of variables (Crude and ASX)
+
+
+
+
+# Fit the Koyck model for the dependant variable ASX and the independant variable crude to explore and elaborate on the suitability of the model 
+
+model7 = koyckDlm(x = as.vector(crude.ts) , y = as.vector(ASX.ts))
+summary(model7)
+checkresiduals(model7$model)
+
+summary(model7$model, diagnostics = TRUE)
+
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+VIF.model7 = vif(model7$model)
+
+VIF.model7
+
+VIF.model7 > 10
+
+#The Breusch-Godfrey test is displayed to test the existence of serial correlation up to the displayed order. According to this test and ACF plot, we can conclude that the serial correlation left in residuals is not significant . Also, from the time series plot and histogram of residuals, there is a random pattern and no autocorrelation in the lags of the regressor hence not violating general assumptions. 
+#The VIF test shows values less than 10 futher corroborating the presence of no multicollinearity
+#The From the Weak Instruments line, we conclude that the model at the first stage of the least-squares fitting is significant at 5% level of significance. In this model, both δ2 and δ3 are significant at 5% level. Using the coefficients, we find the estimates of original parameters such that β^= -0.99907 and ϕ^=0.97537. So the weights will decline quickly at the rate of 0.97537. Thus, the first lags of crude prices will have a more strong impact on the ASX than the latter ones.    
+#From the Wu-Hausman test result in the model output, we reject the null hypothesis that the correlation between explanatory variable and the error term is zero (There is no endogeneity) at 5% level. So, there is a significant correlation between the explanatory variable and the error term at 5% level.
+#This model looks good so far better than the last two
+
+
+
+
+# Fit the autoregressive distributed lag models for the dependant variable ASX and the independant variable crude to explore and elaborate on the suitability of the model 
+
+for (i in 1:5){
+for(j in 1:5){
+model8 = ardlDlm(x = as.vector(crude.ts) ,
+y = as.vector(ASX.ts), p = i , q = j )
+cat("p = ", i, "q = ", j, "AIC = ", AIC(model8$model), "BIC = ", BIC(model8$model),"\n")
+}
+}
+
+model8.1 = ardlDlm(x = as.vector(crude.ts) ,
+y = as.vector(ASX.ts), p = 1 , q = 5 )
+
+summary(model8.1)
+
+# According to both AIC and BIC,  model8.3 is the most accurate one. We will display diagnostic plots of residuals from model8.3 to examine residuals.
+
+checkresiduals(model8.1$model)
+
+
+# variance inflation factors 
+
+VIF.model8.1 = vif(model8.1$model)
+
+VIF.model8.1
+
+VIF.model8.1 > 10
+
+#Adjusted R square value is 0.9468. The BG test gives us a p-value of  0.7602 through which we fail to reject the null hypothesis that there no serial correlation left in the resduals and can conclude that the serial correlation left in residuals is not significant. Also, from the time series plot and histogram of residuals, there is an obvious random pattern and low residual values that violate general assumptions.This is looking like a good model overall as the p-value is less than 0.05 
+
+
+
+
+# Fit a finite DLM with a lag length of 4 and do the diagnostic checking for variables crude and ASX (dependant variable) .
+# Using the crude series as the independant/ regressor variable 
+
+model9 = dlm( x = as.vector(copper.ts) , y = as.vector(ASX.ts), q = 4 )
+summary(model9)
+checkresiduals(model9$model)
+
+# Find the finite lag length based on AIC and BIC for this data
+# We can change  q and compare AIC/BIC values
+
+for ( i in 1:10){
+  model9.1 = dlm( x = as.vector(copper.ts) , y = as.vector(ASX.ts), q = i )
+  cat("q = ", i, "AIC = ", AIC(model5.1$model), "BIC = ", BIC(model5.1$model),"\n")
+}
+
+# We go for the smallest AIC/BIC which is q =10
+
+model9.2 = dlm( x = as.vector(copper.ts) , y = as.vector(ASX.ts), q = 10 )
+summary(model9.2)
+checkresiduals(model9.2$model)
+
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+
+VIF.model9.2 = vif(model9.2$model) 
+
+VIF.model9.2
+
+VIF.model9.2 > 10
+
+#It is obvious that the estimates of the finite DLM coefficients are suffering from the multicollinearity. Multiple R-squared:  0.1931 and Adjusted R-squared:  0.1292 is low .  The Breusch-Godfrey test p-value < 2.2e-16 shows high serial correlation of order up to 1From the VIF values, it is obvious that the estimates of the finite DLM coefficients are suffering from the multicollinearity
+#Hence clearly this is not a suitable choice of model.
+
+
+
+# Fit the Polynomial distributed lag model for the dependant variable ASX and the independant variable copper to explore and elaborate on the suitability of the model 
+#Using different lag lengths (q) to determine which PolyDLm fit provides a better adjusted R square value 
+
+model10.1 = polyDlm(x = as.vector(copper.ts) , y = as.vector(ASX.ts) , q = 2 , k = 2 , show.beta = TRUE)
+summary(model10.1)
+checkresiduals(model10.1$model)
+
+model10.2 = polyDlm(x = as.vector(copper.ts) , y = as.vector(ASX.ts) , q = 3 , k = 2 , show.beta = TRUE)
+summary(model10.2)
+checkresiduals(model10.2$model)
+
+
+model10.3 = polyDlm(x = as.vector(copper.ts) , y = as.vector(ASX.ts) , q = 10 , k = 2 , show.beta = TRUE)
+summary(model10.3)
+checkresiduals(model10.3$model)
+
+#It is clear that model10.1 with lag length 2 provides the highest value of adjusted R square  
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+
+VIF.model10.1 = vif(model10.1$model)
+
+VIF.model10.1
+
+VIF.model10.1 > 10
+
+
+#Multiple R-squared:  0.05293,	Adjusted R-squared:  0.03361 which is nowhere clsoe to idea . The Breusch-Godfrey test is displayed to test the existence of serial correlation up to the displayed order. According to this test and ACF plot, we can conclude that the serial correlation left in residuals is highly significant. Also, from the time series plot and histogram of residuals, there is an obvious non-random pattern and very high residual values that violate general assumptions. There is also extremely high multicollinearity in the lags of the independant variable in the variance inflation factors test . 
+#The polynomial distributed lag model is not a good choice for the choice of variables (Crude and ASX)
+
+
+
+
+# Fit the Koyck model for the dependant variable ASX and the independant variable copper to explore and elaborate on the suitability of the model 
+
+model11 = koyckDlm(x = as.vector(copper.ts) , y = as.vector(ASX.ts))
+summary(model11)
+checkresiduals(model11$model)
+
+summary(model11$model, diagnostics = TRUE)
+
+
+# variance inflation factors 
+# Notice again we are getting the model object out of the model fitting 
+# by using "$model" in addition to "model1"
+VIF.model11 = vif(model11$model)
+
+VIF.model11
+
+VIF.model11 > 10
+
+#The Breusch-Godfrey test is displayed to test the existence of serial correlation up to the displayed order. According to this test and ACF plot, we can conclude that the serial correlation left in residuals is not significant . Also, from the time series plot and histogram of residuals, there is a random pattern and no autocorrelation in the lags of the regressor hence not violating general assumptions. 
+#The VIF test shows values less than 10 futher corroborating the presence of no multicollinearity
+#The From the Weak Instruments line, we conclude that the model at the first stage of the least-squares fitting is significant at 5% level of significance. In this model, both δ2 and δ3 are significant at 5% level. Using the coefficients, we find the estimates of original parameters such that β^= -0.99907 and ϕ^=0.97537. So the weights will decline quickly at the rate of 0.97537. Thus, the first lags of crude prices will have a more strong impact on the ASX than the latter ones.    
+#From the Wu-Hausman test result in the model output, we reject the null hypothesis that the correlation between explanatory variable and the error term is zero (There is no endogeneity) at 5% level. So, there is a significant correlation between the explanatory variable and the error term at 5% level.
+#This model looks good so far better than the last two
+
+
+
+
+# Fit the autoregressive distributed lag models for the dependant variable ASX and the independant variable gold to explore and elaborate on the suitability of the model 
+
+for (i in 1:5){
+for(j in 1:5){
+model12= ardlDlm(x = as.vector(copper.ts) ,
+y = as.vector(ASX.ts), p = i , q = j )
+cat("p = ", i, "q = ", j, "AIC = ", AIC(model12$model), "BIC = ", BIC(model12$model),"\n")
+}
+}
+
+# According to both AIC and BIC,  model with p=5 and q=1  is the most accurate one. We will display diagnostic plots of residuals from model8.3 to examine residuals.
+
+model12.1 = ardlDlm(x =as.vector(copper.ts) ,
+y = as.vector(ASX.ts), p = 5 , q = 1 )
+
+summary(model12.1)
+
+checkresiduals(model12.1$model)
+
+VIF.model2.1 = vif(model2.1$model)
+VIF.model2.1 > 10
+
+#Adjusted R square value is 0.9468. The BG test gives us a p-value of  0.7602 through which we fail to reject the null hypothesis that there no serial correlation left in the resduals and can conclude that the serial correlation left in residuals is not significant. Also, from the time series plot and histogram of residuals, there is an obvious random pattern and low residual values that violate general assumptions.
+
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
