@@ -1,0 +1,545 @@
+---
+title: "ForecastingProject"
+output:
+  word_document: default
+  html_document: default
+---
+
+````{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(readr)
+library(forecast)
+library(expsmooth)
+library(x12)
+library(dLagM)
+library(Hmisc)
+library(AER)
+library(dynlm)
+library(TSA)
+library(car)
+library(tseries)
+library(stats)
+library(urca)
+
+data_load <-read_csv("C:/Users/arnav/OneDrive/Desktop/ForecastingProject/all_airlines_all_airports.csv")
+head(data_load)
+```
+
+
+
+```{r}
+Flights <- select(data_load,3,9)
+head(Flights)
+Flight_ts <- ts(Flights, start=c(2002,10),end = c(2017,1),frequency=12)
+head(Flight_ts)
+```
+
+```{r}
+
+plot(Flight_ts , plot.type = "s", col = c("blue","red"), main = "Available seat miles vs Revenue Passenger miles  ")
+
+```
+
+```{r}
+ASM <- ts(data_load$ASM_International, start = c(2002,10), end = c(2017,1), frequency = 12)
+
+RPM<- ts(data_load$RPM_International , start= c(2002,10), end = c(2017,1), frequency = 12)
+```
+
+
+
+```{r}
+
+plot(RPM)
+points(y=RPM, x = time(RPM), pch = as.vector(season(RPM)))
+
+```
+
+
+```{r}
+par(mfrow=c(1,2))
+acf(RPM)
+pacf(RPM)
+
+```
+
+
+
+
+```{r}
+ADFRPM <- adf.test(RPM)
+ADFRPM
+
+```
+
+```{r}
+pp.test(RPM)
+
+```
+
+
+```{r}
+Decomp<- x12(RPM)
+plot(Decomp,sa=TRUE, trend= TRUE)
+
+```
+
+```{r}
+plotSeasFac(Decomp)
+
+```
+
+```{r}
+STLDom<- stl(RPM,s.window='periodic', t.window = 15)
+
+plot(STLDom)
+
+```
+
+```{r}
+plot(seasadj(STLDom), ylab = "Revenue passnger Miles", xlab = "Time", main = "Seasonally adjusted Passengers for Airline Series")
+points(y = seasadj(STLDom), x = time(seasadj(STLDom), pch = as.vector(season(seasadj(STLDom)))))
+
+```
+
+
+
+```{r}
+
+#Finite DLM
+for(i in 20:1)
+{
+  dlm1.0 <-dlm( x =as.vector(ASM) , y = as.vector(RPM), q = i )
+  cat("q = ", i, "AIC = ", AIC(dlm1.0$model), "BIC = ", BIC(dlm1.0$model),"\n")
+}
+
+#q = 15 gives us the lowest AIC /BIC 
+```
+
+
+```{r}
+dlmod<- dlm(x=as.vector(ASM), y = as.vector(RPM), q = 20) 
+cat("q=" , i, "AIC=", AIC(dlmod$model),"BIC=", BIC(dlmod$model),"\n")
+summary(dlmod)
+checkresiduals(dlmod$model)
+
+vif.dlm = vif(dlmod$model)
+vif.dlm>10
+
+```
+
+```{r}
+
+#From the variance inflation facotrs we can tell that there is  multicollinearity but the model seems toa good fit with an Adjusted R^2  value of 0.9855. 
+
+#Polynomial distributed lag model
+
+pdlm = polyDlm(x = as.vector(ASM) , y = as.vector(RPM) , q = 20 , k = 2 , show.beta = FALSE)
+summary(pdlm)
+checkresiduals(pdlm$model)
+
+vif.pdlm = vif(pdlm$model)
+vif.pdlm>10
+
+
+#The Koyck DLM
+
+koyck = koyckDlm(x = as.vector(ASM) , y = as.vector(RPM))
+summary(koyck)
+checkresiduals(koyck$model)
+
+vif.koyck = vif(koyck$model)
+vif.koyck>10
+
+#Autoregressive DLM
+
+for (i in 1:5){
+  for(j in 1:5){
+    ardlm1.0 = ardlDlm(x = as.vector(ASM) , y = as.vector(RPM), p = i , q = j )
+    cat("p = ", i, "q = ", j, "AIC = ", AIC(ardlm1.0$model), "BIC = ", BIC(ardlm1.0$model),"\n")
+  }
+}
+
+#the Autoregressive loop suggests that we need to take p = 2 and q=5 . These two values return the lowest AIC and BIC score 
+
+ardlm = ardlDlm(x = as.vector(ASM) , y = as.vector(RPM), p = 2 , q = 5)
+summary(ardlm)
+checkresiduals(ardlm$model)
+
+vif.ardlm = vif(ardlm$model)
+vif.ardlm>10
+
+MASE(dlmod,pdlm,koyck,ardlm)
+
+```
+
+
+```{r}
+residual.analysis <- function(model, std = TRUE, Ljung.Box = FALSE, start = 2, class = c("LM")[1]){
+  # If you have an output from arima() function use class = "ARIMA"
+  # If you have an output from garch() function use class = "GARCH"
+  # If you have an output from ugarchfit() function use class = "ARMA-GARCH"
+  library(TSA)
+  library(FitAR)
+  if (class == "LM"){
+    if (std == TRUE){
+      res.model = scale(residuals(model),center= TRUE, scale = TRUE)
+      res.type = " standardised"
+    }else{
+      res.model = residuals(model)
+      res.type = ""
+    }
+  }else if (class == "GARCH"){
+    res.model = model$residuals[start:model$n.used]
+  }else if (class == "ARMA-GARCH"){
+    res.model = model@fit$residuals
+  }else {
+    stop("The argument 'class' must be either 'ARIMA' or 'GARCH' ")
+  }
+  par(mfrow=c(3,2))
+  plot(res.model,type='o',ylab=paste0(res.type,"residuals"), main=paste0("Time series plot of", res.type, " residuals"))
+  abline(h=0)
+  hist(res.model,main=paste0("Histogram of", res.type, " residuals"))
+  acf(res.model,main=paste0("ACF of", res.type, " residuals"))
+  pacf(res.model,main=paste0("PACF of", res.type, " residuals"))
+  qqnorm(res.model,main=paste0("QQ plot of", res.type, " residuals"))
+  qqline(res.model, col = 2)
+  print(shapiro.test(res.model))
+  if (Ljung.Box){
+    k=0
+    LBQPlot(res.model, lag.max = 30, StartLag = k + 1, k = 0, SquaredQ = FALSE)
+  }
+}
+
+# AIC and BIC sorting function by Cameron Doyle
+sort.score <- function(x, score = c("bic", "aic")){
+  if (score == "aic"){
+    x[with(x, order(AIC)),]
+  } else if (score == "bic") {
+    x[with(x, order(BIC)),]
+  } else {
+    warning('score = "x" only accepts valid arguments ("aic","bic")')
+  }
+}
+# AIC and BIC sorting function by Cameron Doyle
+```
+
+
+```{r}
+data(Flight_ts)
+plot(log(RPM),ylab='Log(RPM)',xlab='Year')
+acf(log(RPM),main="Sample ACF of log(RPM) series")
+```
+
+
+```{r}
+seasadj(STLDom)
+
+```
+
+
+
+
+```{r}
+Y.t = log(seasadj(STLDom))
+T =6 # The time point when the intervention occurred 
+P.t = 1*(seq(seasadj(STLDom)) == T)
+P.t.1 = Lag(P.t,+1) 
+
+IA = dynlm(Y.t ~ L(Y.t , k = 1 ) + P.t.1 + P.t + trend(Y.t) + season(Y.t))
+summary(IA)
+```
+
+```{r}
+residual.analysis((IA) , std=TRUE , Ljung.Box=FALSE)
+AIC(IA)
+```
+
+
+
+
+
+
+```{r}
+plot(log(seasadj(STLDom)),ylab='Log(seasAdjRPM)',type="l", col = 'red')
+lines(IA$fitted.values)
+```
+
+```{r}
+q = 120
+n = nrow(IA$model)
+RPM.frc = array(NA , (n + q))
+RPM.frc[1:n] = Y.t[2:length(Y.t)] # length(1:n) = length(2:length(Y.t)) = 112
+trend = array(NA,q)
+trend.start = IA$model[n,"trend(Y.t)"]
+trend = seq(trend.start , trend.start + q/12, 1/12)
+
+for (i in 1:q){
+  months = array(0,11)
+  months[(i+2)%%12] = 1 # Data ends in March, to start the new forecast from April, put i + 2.
+  data.new = c(1,RPM.frc[n-1+i], P.t.1[n] , P.t[n] ,trend[i],months) 
+  RPM.frc[n+i] = as.vector(IA$coefficients) %*% data.new
+}
+
+par(mfrow=c(1,1))
+
+plot(Y.t,xlim=c(2002,2027),ylim = c(17,18.5),ylab='Log number of passengers',xlab='Year',main = "Forecast plot for series.")
+lines(ts(RPM.frc[(n+1):(n+q)],start=c(2017,4),frequency = 12),col="red")
+
+```
+
+```{r}
+ASM;RPM
+ASM.RPM = ts.intersect(ASM,log(RPM))
+plot(ASM.RPM,yax.flip=T)
+
+```
+
+```{r}
+par(mar=c(5,2,5,0))
+ccf(as.vector(ASM.RPM[,1]), as.vector(ASM.RPM[,2]),ylab='CCF', main = "Sample CCF between monthly ASM and logarithm of monthly RPM")
+```
+
+## Prewhitening
+```{r}
+par(mar=c(5,2,5,0))
+me.dif=ts.intersect(diff(diff(ASM,12)),diff(diff(log(RPM),12)))
+prewhiten(as.vector(me.dif[,1]),as.vector(me.dif[,2]),ylab='CCF', main="Sample CFF after prewhitening of ASM
+          and RPM series")
+
+```
+
+
+#Exponential Smoothing Methods
+
+In this section, we will cover simple exponential smoothing (N,N), Holt’s linear method (A,N), the damped trend method (Ad,N) and Holt-Winters’ seasonal method (A,A and A,M).
+
+
+```{r}
+
+#Simple Exponential Smoothing
+
+fitses1<- ses(RPM, alpha = 0.2, initial="simple", h=5)
+summary(fitses1)
+checkresiduals(fitses1)
+
+#MASE 1.681926 
+
+fitses2<-ses(RPM, alpha = 0.8, initial="simple", h=5)
+summary(fitses2) 
+checkresiduals(fitses2)
+
+#MASE 1.481191
+
+fitses3<-ses(RPM, initial="simple", h=5) 
+summary(fitses3) 
+checkresiduals(fitses3)
+
+#Letting the software estimate alpha , alpha = 0.7569  MASE 1.458735
+
+```
+
+From the simple exponential smoothing models we can see that after trying  2 different values of alpha and then letting the software estimate the value by not entering the arguemnt alpha the lowest MASE is from the 3 models is 0.636771. This makes sense as simple exponential smoothing  works best for data that have no trend, seasonality, or other underlying patterns and our data clerly has trend, seasonality as well as changing variance. 
+
+#Holts Linear Method 
+
+Lets move on to Holts Linear Method 
+
+Holts linear extends simple exponential smoothing to linear exponential smoothing to be able include trends to the forecasting model. 
+
+We can visually inspect from the RPM time series plot that there is a slightly upward trend to the series so the assumption here is that the Holts linear method might not be the best fit as there is seasonality as well to the time series plot along with a trend component. 
+
+In  Holt's Linear we have 2 smoothing constants Alpha and Beta , for the two components level and the growth and both the smoothing constants are between 0 and 1 
+
+````{r}
+
+# Set alpha and beta
+fithl1 <- holt(RPM, alpha=0.8, beta=0.1, initial="simple", h=5)
+summary(fithl1) 
+checkresiduals(fithl1)
+#MASE 1.562201 
+
+
+# Let the software estimate both alpha and beta
+fithl2 <- holt(RPM, initial="simple", h=5)
+summary(fithl2) 
+checkresiduals(fithl2)
+#MASE 1.511289 
+
+# Brown’s double exponential smoothing
+fithl3 <- holt(RPM, alpha=0.2, beta=0.2, initial="simple", h=5) 
+summary(fithl3) 
+checkresiduals(fithl3)
+#MASE 2.065277
+
+# Simple exponential smoothing with drift
+fithl4 <- holt(RPM,  beta=0, initial="simple", h=5)
+summary(fithl4) 
+checkresiduals(fithl4)
+#MASE 1.838059   
+
+# Fit with exponential trend
+fithl5 <- holt(RPM, alpha=0.1, beta=0.8, initial="simple", exponential=TRUE, h=5) 
+summary(fithl5) 
+checkresiduals(fithl5)
+#MASE 2.404449
+
+# Fit with additive damped trend
+fithl6 <- holt(RPM, alpha=0.8, beta=0.2, damped=TRUE, initial="simple", h=5)
+summary(fithl6) 
+checkresiduals(fithl6)
+#MASE 1.505192 
+
+````
+
+We notice that the lowest MACE from the Holts liner method (1.505192) is still not the lowest compared to Simple exponential smoothing (1.458735) . So we will continue with the other models 
+
+
+```{r}
+
+#Holts Winter's additive
+
+fithw1 <- hw(RPM,seasonal="additive", h=10*frequency(RPM))
+
+summary(fithw1)
+
+checkresiduals(fithw1)
+
+#MACE 0.395
+
+
+```
+
+```{r}
+#Holts Winters'Additive Damped
+
+fithw2 <- hw(RPM ,seasonal="additive",damped = TRUE, h=10*frequency(RPM))
+
+summary(fithw2)
+
+checkresiduals(fithw2)
+
+#MACE 0.395
+
+```
+
+```{r}
+#Holts Winters' Multiplicative 
+
+fithw3<- hw(RPM,seasonal="multiplicative", h=10*frequency(RPM))
+
+summary(fithw3)
+
+checkresiduals(fithw3)
+
+#MASE : 0.327
+
+```
+ 
+ 
+ 
+```{r}
+#Holts Winters' Multiplicative Damped
+
+fithw4 <- hw(RPM,seasonal="multiplicative",damped =TRUE, h=10*frequency(RPM))
+
+summary(fithw4)
+
+checkresiduals(fithw4)
+
+#MASE: 0.3005
+
+```
+
+
+```{r}
+#Holts Winters' Multiplicative Exponential
+
+fithw5 <- hw(RPM,seasonal="multiplicative",exponential = TRUE, h=10*frequency(RPM))
+
+summary(fithw5)
+
+checkresiduals(fithw5)
+
+#MASE: 0.3393
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+#Additive Error , No trend , No Seasonality 
+etsmod1 = ets(RPM, model="ANN")
+summary(etsmod1) #MASE 1.462104 
+checkresiduals(etsmod1)
+
+#Additive Error , Additive trend , No Seasonality 
+etsmod2 = ets(RPM, model="AAN")
+summary(etsmod2)#MASE 1.462726 
+checkresiduals(etsmod2)
+
+#Additive Error , Additive damped trend , No Seasonality 
+etsmod3 = ets(RPM, model="AAN", damped = TRUE)
+summary(etsmod3)#MASE 1.463447 
+checkresiduals(etsmod3)
+
+#Additive Error , Additive trend , Additive Seasonality 
+etsmod4 = ets(RPM, model="AAA")
+summary(etsmod4) #MASE 0.3949641 
+checkresiduals(etsmod4)
+
+#Multiplicative Error , No trend , No Seasonality 
+etsmod5 = ets(RPM, model="MNN")
+summary(etsmod5) #MASE 1.506931 
+checkresiduals(etsmod5)
+
+#Multiplicative Error , Additive trend , No Seasonality 
+etsmod6 = ets(RPM, model="MAN")
+summary(etsmod6)#MASE 1.493013 
+checkresiduals(etsmod6)
+
+#Multiplicative Error , Additive damped trend , Additive Seasonality 
+etsmod7 = ets(RPM, model="MAA", damped = TRUE)
+summary(etsmod7) #MASE 0.4126308 
+checkresiduals(etsmod7)
+
+#Multiplicative Error , No trend , Additive Seasonality 
+etsmod8 = ets(RPM, model="MNA")
+summary(etsmod8)#MASE  0.4031734 
+checkresiduals(etsmod8)
+
+# Autofit finds the best fit triplet which gives the least autocorrelated - BG test
+etsmod9 = ets(RPM)
+summary(etsmod9)
+checkresiduals(etsmod9)
+#MASE 0.304686  - ETS(M,Ad,M)- most viable model
+```
+
+```{r}
+#Multiplicative Error , Multiplicative trend , Multiplicative Seasonality 
+etsmod10 = ets(RPM, model = "MMM")
+summary(etsmod10)#MASE 0.3007524
+checkresiduals(etsmod10)
+h = 10*frequency(RPM)
+```
+
+```{r}
+
+frc<- forecast(etsmod10,h)
+plot(frc, ylab="Value"
+, type="l"
+, fcol="red"
+,
+xlab="Year",xlim = c(2002,2027) )
+
+
+```
